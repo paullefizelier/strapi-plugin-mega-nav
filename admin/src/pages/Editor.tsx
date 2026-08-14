@@ -19,7 +19,14 @@ import { ArrowClockwise, Plus } from "@strapi/icons";
 import { useNotification } from "@strapi/strapi/admin";
 import { useMegaNavApi } from "../api";
 import { lintSubtree, type LintIssue } from "../editor/lint";
-import { editorReducer, emptyNode, findNode, nodeDepth, type EditorState } from "../editor/reducer";
+import {
+  editorReducer,
+  emptyNode,
+  findNode,
+  nodeDepth,
+  normalizeForSave,
+  type EditorState,
+} from "../editor/reducer";
 import ItemPanel from "../components/ItemPanel";
 import Preview from "../components/Preview";
 import TreePane from "../components/TreePane";
@@ -247,7 +254,7 @@ const Editor = () => {
     setBusy(true);
     try {
       const saved = await api.saveNavigation(documentId, locale, {
-        items: state.tree,
+        items: normalizeForSave(state.tree),
         ...(force || !doc ? {} : { updatedAt: doc.updatedAt }),
       });
       setDoc(saved);

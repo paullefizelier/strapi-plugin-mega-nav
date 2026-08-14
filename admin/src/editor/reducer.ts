@@ -96,6 +96,22 @@ const reId = (node: NavNode): NavNode => ({
   children: node.children.map(reId),
 });
 
+/**
+ * Save-time normalization: an internal link whose entry was never picked is an
+ * unfinished edit, not a target. The editor keeps it as `internal` so the form
+ * stays on its tab; the server only ever sees a complete link or a wrapper.
+ */
+export function normalizeForSave(tree: NavNode[]): NavNode[] {
+  return tree.map((node) => ({
+    ...node,
+    link:
+      node.link.kind === "internal" && !node.link.documentId
+        ? { kind: "none" as const }
+        : node.link,
+    children: normalizeForSave(node.children),
+  }));
+}
+
 /** Tree-only transformation; returns null when the action is a no-op. */
 function mutate(tree: NavNode[], action: EditorAction, maxDepth: number): NavNode[] | null {
   const next = clone(tree);

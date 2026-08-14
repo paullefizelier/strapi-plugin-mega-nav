@@ -47,14 +47,16 @@ const LinkEditor = ({ link, sources, locale, resolved, onChange }: Props) => {
           <EntryPicker
             sources={sources}
             locale={locale}
-            value={link.kind === "internal" && link.documentId ? { uid: link.uid, documentId: link.documentId } : null}
+            value={link.kind === "internal" ? { uid: link.uid, documentId: link.documentId } : null}
             resolved={resolved}
+            // Stays internal whatever the picker reports: an entry not chosen
+            // yet is an incomplete link, not a wrapper. Save normalizes it.
             onChange={(ref) =>
-              onChange(
-                ref
-                  ? { kind: "internal", ...ref, ...(link.kind === "internal" && link.query ? { query: link.query } : {}) }
-                  : { kind: "none" },
-              )
+              onChange({
+                kind: "internal",
+                ...ref,
+                ...(link.kind === "internal" && link.query ? { query: link.query } : {}),
+              })
             }
           />
           <Field.Root

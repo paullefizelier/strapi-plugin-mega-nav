@@ -20,7 +20,13 @@ interface Props {
   value: { uid: string; documentId: string } | null;
   /** Pre-resolved display info for the current value, when available. */
   resolved?: ResolvedRef;
-  onChange: (ref: { uid: string; documentId: string } | null) => void;
+  /**
+   * Always emits an internal target — `documentId` is empty while no entry is
+   * picked yet. Never emits "no link": choosing a content type is a browsing
+   * action, and turning it into a wrapper would kick the editor out of the
+   * Internal tab mid-selection.
+   */
+  onChange: (ref: { uid: string; documentId: string }) => void;
 }
 
 /**
@@ -69,18 +75,22 @@ const EntryPicker = ({ sources, locale, value, resolved, onChange }: Props) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [uid, locale]);
 
+  // The stored entry only belongs to the list currently being browsed; after a
+  // content-type switch the combobox shows empty rather than a foreign entry.
+  const selected = value && value.uid === uid && value.documentId ? value : null;
+
   const options = React.useMemo(() => {
     const list = [...hits];
-    if (value && value.uid === uid && !list.some((h) => h.documentId === value.documentId)) {
+    if (selected && !list.some((h) => h.documentId === selected.documentId)) {
       list.unshift({
-        documentId: value.documentId,
-        title: resolved?.title ?? value.documentId,
+        documentId: selected.documentId,
+        title: resolved?.title ?? selected.documentId,
         href: resolved?.href ?? null,
         published: resolved?.published ?? false,
       });
     }
     return list;
-  }, [hits, value, uid, resolved]);
+  }, [hits, selected, resolved]);
 
   return (
     <Flex direction="column" alignItems="stretch" gap={2}>
@@ -90,7 +100,8 @@ const EntryPicker = ({ sources, locale, value, resolved, onChange }: Props) => {
           value={uid}
           onChange={(next: string | number) => {
             setUid(String(next));
-            onChange(null);
+            // Retarget the link at the new type, entry still to be chosen.
+            onChange({ uid: String(next), documentId: "" });
           }}
         >
           {sources.map((source) => (
@@ -104,11 +115,9 @@ const EntryPicker = ({ sources, locale, value, resolved, onChange }: Props) => {
       <Field.Root name="entry-picker-entry">
         <Field.Label>{t("picker.entry", "Entry")}</Field.Label>
         <Combobox
-          value={value?.documentId ?? ""}
-          onChange={(documentId?: string) =>
-            onChange(documentId ? { uid, documentId } : null)
-          }
-          onClear={() => onChange(null)}
+          value={selected?.documentId ?? ""}
+          onChange={(documentId?: string) => onChange({ uid, documentId: documentId ?? "" })}
+          onClear={() => onChange({ uid, documentId: "" })}
           onInputChange={(e: React.ChangeEvent<HTMLInputElement>) => search(e.target.value)}
           loading={loading}
           autocomplete={{ type: "list", filter: "contains" }}
