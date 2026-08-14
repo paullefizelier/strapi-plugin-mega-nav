@@ -1,4 +1,6 @@
 import type { Core } from "@strapi/strapi";
+import { NAVIGATION_UID } from "./i18n";
+import { walk, type NavNode } from "./tree";
 
 /**
  * Custom item fields are DATA, not code: the definitions live in the plugin
@@ -104,4 +106,38 @@ export async function setFieldDefs(strapi: Core.Strapi, defs: FieldDef[]): Promi
 export async function seedFieldDefs(strapi: Core.Strapi): Promise<void> {
   const stored = (await store(strapi).get({ key: "fields" })) as FieldDef[] | null;
   if (!stored?.length) await store(strapi).set({ key: "fields", value: DEFAULT_FIELDS });
+}
+
+/**
+ * "Delete and purge": drops the definition AND strips the key from every
+ * navigation row (drafts and published) — the destructive alternative to
+ * `disabled`, which keeps values. Rows are patched via the db layer: this is a
+ * bulk data operation, not an editorial change, so no draft/publish dance.
+ */
+export async function purgeField(
+  strapi: Core.Strapi,
+  name: string,
+): Promise<{ removedValues: number }> {
+  const defs = await getFieldDefs(strapi);
+  await store(strapi).set({ key: "fields", value: defs.filter((d) => d.name !== name) });
+
+  const rows = (await strapi.db.query(NAVIGATION_UID).findMany({
+    select: ["id", "items"],
+  })) as { id: number; items?: NavNode[] }[];
+
+  let removedValues = 0;
+  for (const row of rows) {
+    let touched = false;
+    walk(row.items ?? [], (node) => {
+      if (node.fields && name in node.fields) {
+        delete node.fields[name];
+        removedValues += 1;
+        touched = true;
+      }
+    });
+    if (touched) {
+      await strapi.db.query(NAVIGATION_UID).update({ where: { id: row.id }, data: { items: row.items } });
+    }
+  }
+  return { removedValues };
 }

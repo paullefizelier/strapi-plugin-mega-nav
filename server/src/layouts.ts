@@ -332,3 +332,9 @@ export async function seedLayoutSpecs(strapi: Core.Strapi): Promise<void> {
   const stored = (await store(strapi).get({ key: "layouts" })) as LayoutSpec[] | null;
   if (!stored?.length) await store(strapi).set({ key: "layouts", value: DEFAULT_LAYOUTS });
 }
+
+/** "Restore defaults" in Settings — discards every stored customization. */
+export async function resetLayoutSpecs(strapi: Core.Strapi): Promise<LayoutSpec[]> {
+  await store(strapi).set({ key: "layouts", value: DEFAULT_LAYOUTS });
+  return DEFAULT_LAYOUTS;
+}

@@ -29,6 +29,10 @@ interface Props {
   sources: SourceInfo[];
   locale: string;
   resolvedRefs: Map<string, ResolvedRef>;
+  /** Preview zone under the pointer — highlights the field that feeds it. */
+  hoveredZone?: string | null;
+  /** Reports the field under the pointer (highlights its preview zones). */
+  onFieldHover?: (field: string | null) => void;
   dispatch: (action: EditorAction) => void;
 }
 
@@ -47,6 +51,8 @@ const ItemPanel = ({
   sources,
   locale,
   resolvedRefs,
+  hoveredZone = null,
+  onFieldHover = () => {},
   dispatch,
 }: Props) => {
   const { formatMessage } = useIntl();
@@ -154,13 +160,23 @@ const ItemPanel = ({
               const def = defsByName.get(use.field);
               if (!def || def.disabled) return null;
               return (
-                <FieldInput
+                <Box
                   key={use.field}
-                  def={def}
-                  hint={use.hint}
-                  value={node.fields[use.field]}
-                  onChange={setField(use.field)}
-                />
+                  hasRadius
+                  onMouseEnter={() => onFieldHover(use.field)}
+                  onMouseLeave={() => onFieldHover(null)}
+                  style={{
+                    outline: hoveredZone === use.zone ? "2px solid #ffd166" : "none",
+                    outlineOffset: 2,
+                  }}
+                >
+                  <FieldInput
+                    def={def}
+                    hint={use.hint}
+                    value={node.fields[use.field]}
+                    onChange={setField(use.field)}
+                  />
+                </Box>
               );
             })}
           </Flex>

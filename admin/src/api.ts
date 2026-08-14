@@ -3,7 +3,9 @@ import { PLUGIN_ID } from "./pluginId";
 import type {
   EntryHit,
   FieldDef,
+  HealthIssue,
   LayoutSpec,
+  MigrationReport,
   NavigationDoc,
   NavigationSummary,
   NavNode,
@@ -86,6 +88,36 @@ export function useMegaNavApi() {
         locale,
       });
       return data.refs;
+    },
+    async setFields(fields: FieldDef[]): Promise<FieldDef[]> {
+      const { data } = await put<{ fields: FieldDef[] }>(`${base}/fields`, { fields });
+      return data.fields;
+    },
+    async purgeField(name: string): Promise<{ removedValues: number; fields: FieldDef[] }> {
+      const { data } = await post<{ removedValues: number; fields: FieldDef[] }>(
+        `${base}/fields/${encodeURIComponent(name)}/purge`,
+      );
+      return data;
+    },
+    async setLayouts(layouts: LayoutSpec[]): Promise<LayoutSpec[]> {
+      const { data } = await put<{ layouts: LayoutSpec[] }>(`${base}/layouts`, { layouts });
+      return data.layouts;
+    },
+    async resetLayouts(): Promise<LayoutSpec[]> {
+      const { data } = await post<{ layouts: LayoutSpec[] }>(`${base}/layouts/reset`);
+      return data.layouts;
+    },
+    async getHealth(): Promise<HealthIssue[]> {
+      const { data } = await get<{ issues: HealthIssue[] }>(`${base}/health`);
+      return data.issues;
+    },
+    async migrationScan(options: { overwrite?: boolean } = {}): Promise<MigrationReport> {
+      const { data } = await post<MigrationReport>(`${base}/migration/scan`, options);
+      return data;
+    },
+    async migrationRun(options: { overwrite?: boolean } = {}): Promise<MigrationReport> {
+      const { data } = await post<MigrationReport>(`${base}/migration/run`, options);
+      return data;
     },
   };
 }

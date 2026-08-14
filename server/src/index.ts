@@ -1,11 +1,11 @@
 import type { Core } from "@strapi/strapi";
 import { errors } from "@strapi/utils";
-import { cacheGet, cacheKey, cacheSet, makeInvalidationMiddleware, watchedUids } from "./cache";
+import { cacheClear, cacheGet, cacheKey, cacheSet, makeInvalidationMiddleware, watchedUids } from "./cache";
 import contentTypes from "./content-types";
-import { getFieldDefs, seedFieldDefs, setFieldDefs, type FieldDef } from "./fields";
+import { getFieldDefs, purgeField, seedFieldDefs, setFieldDefs, type FieldDef } from "./fields";
 import { runHealthCheck } from "./health";
 import { copyLocale, NAVIGATION_UID, type CopyMode } from "./i18n";
-import { getLayoutSpecs, seedLayoutSpecs, setLayoutSpecs, type LayoutSpec } from "./layouts";
+import { getLayoutSpecs, resetLayoutSpecs, seedLayoutSpecs, setLayoutSpecs, type LayoutSpec } from "./layouts";
 import { renderV1, renderV2, type RenderContext } from "./render";
 import { resolveTree } from "./resolve";
 import { migrate } from "./migration/run";
@@ -258,6 +258,11 @@ const controllers = {
       }
       ctx.body = { fields: await getFieldDefs(strapi) };
     },
+    async purge(ctx: { params: Record<string, string>; body: unknown }) {
+      const result = await purgeField(strapi, ctx.params.name);
+      cacheClear(); // rows were patched via the db layer — the middleware can't see it
+      ctx.body = { ...result, fields: await getFieldDefs(strapi) };
+    },
   }),
 
   layouts: ({ strapi }: { strapi: Core.Strapi }) => ({
@@ -271,6 +276,9 @@ const controllers = {
         ctx.throw(400, (err as Error).message);
       }
       ctx.body = { layouts: await getLayoutSpecs(strapi) };
+    },
+    async reset(ctx: { body: unknown }) {
+      ctx.body = { layouts: await resetLayoutSpecs(strapi) };
     },
   }),
 
@@ -353,8 +361,10 @@ const routes = {
       adminRoute("POST", "/navigations/:documentId/copy-locale", "navigations.copyLocale", [ACTIONS.update]),
       adminRoute("GET", "/fields", "fields.get", [ACTIONS.read]),
       adminRoute("PUT", "/fields", "fields.update", [ACTIONS.settings]),
+      adminRoute("POST", "/fields/:name/purge", "fields.purge", [ACTIONS.settings]),
       adminRoute("GET", "/layouts", "layouts.get", [ACTIONS.read]),
       adminRoute("PUT", "/layouts", "layouts.update", [ACTIONS.settings]),
+      adminRoute("POST", "/layouts/reset", "layouts.reset", [ACTIONS.settings]),
       adminRoute("GET", "/sources", "sources.list", [ACTIONS.read]),
       adminRoute("GET", "/sources/:uid/entries", "sources.entries", [ACTIONS.read]),
       adminRoute("POST", "/entries/resolve", "sources.resolve", [ACTIONS.read]),

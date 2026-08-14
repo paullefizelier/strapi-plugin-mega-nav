@@ -40,11 +40,17 @@ const DropIndicator = styled.div<{ $depth: number; $invalid: boolean }>`
   border-radius: 1px;
 `;
 
+interface IssueCounts {
+  degrade: number;
+  warning: number;
+}
+
 interface Props {
   tree: NavNode[];
   selectedId: string | null;
   maxDepth: number;
   brokenRefs: Set<string>;
+  issuesByNode?: Map<string, IssueCounts>;
   dispatch: (action: EditorAction) => void;
 }
 
@@ -52,6 +58,7 @@ interface RowItemProps {
   row: FlatRow;
   selected: boolean;
   broken: boolean;
+  issueCounts?: IssueCounts;
   maxDepth: number;
   dispatch: (action: EditorAction) => void;
   onToggle: (id: string) => void;
@@ -70,7 +77,7 @@ const linkBadge = (node: NavNode): string | null => {
   }
 };
 
-const RowItem = ({ row, selected, broken, maxDepth, dispatch, onToggle }: RowItemProps) => {
+const RowItem = ({ row, selected, broken, issueCounts, maxDepth, dispatch, onToggle }: RowItemProps) => {
   const { formatMessage } = useIntl();
   const t = (id: string, defaultMessage: string) =>
     formatMessage({ id: getTranslation(id), defaultMessage });
@@ -135,6 +142,16 @@ const RowItem = ({ row, selected, broken, maxDepth, dispatch, onToggle }: RowIte
 
         {row.depth === 1 && typeof row.node.fields.presentation === "string" ? (
           <Badge size="S">{row.node.fields.presentation}</Badge>
+        ) : null}
+        {issueCounts && issueCounts.degrade + issueCounts.warning > 0 ? (
+          <Badge
+            size="S"
+            backgroundColor={issueCounts.degrade ? "danger100" : "warning100"}
+            textColor={issueCounts.degrade ? "danger700" : "warning700"}
+            aria-label={t("tree.issues", "This item has problems")}
+          >
+            {issueCounts.degrade + issueCounts.warning}
+          </Badge>
         ) : null}
         {badge ? (
           <Typography variant="pi" textColor={broken ? "danger600" : "neutral500"}>
@@ -221,7 +238,7 @@ const countSubtree = (node: NavNode): number =>
  * maxDepth allow — reorder and reparent in one gesture. Every operation is
  * also reachable from the row menu (the keyboard/a11y-complete path).
  */
-const TreePane = ({ tree, selectedId, maxDepth, brokenRefs, dispatch }: Props) => {
+const TreePane = ({ tree, selectedId, maxDepth, brokenRefs, issuesByNode, dispatch }: Props) => {
   const [collapsed, setCollapsed] = React.useState<Set<string>>(new Set());
   const [drag, setDrag] = React.useState<{
     activeId: string;
@@ -318,6 +335,7 @@ const TreePane = ({ tree, selectedId, maxDepth, brokenRefs, dispatch }: Props) =
                   row.node.link.kind === "internal" &&
                   brokenRefs.has(`${row.node.link.uid}:${row.node.link.documentId}`)
                 }
+                issueCounts={issuesByNode?.get(row.id)}
                 maxDepth={maxDepth}
                 dispatch={dispatch}
                 onToggle={onToggle}

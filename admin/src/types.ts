@@ -101,3 +101,42 @@ export interface SourceInfo {
   pathField?: string;
   known: boolean;
 }
+
+export interface HealthIssue {
+  navigation: string;
+  locale?: string;
+  nodeId: string;
+  title: string;
+  kind: "broken-ref" | "missing-media" | "path-escape-hatch" | "unknown-field";
+  detail: string;
+}
+
+/** Mirror of server/src/migration/run.ts. */
+export interface MigrationLocaleReport {
+  items: number;
+  links: { internal: number; external: number; path: number; none: number };
+  reverseMatched: number;
+  pathFallbacks: string[];
+  unknownFieldKeys: string[];
+  booleansCoerced: number;
+  mediaRelinked: number;
+  mediaMissing: number;
+  unpaired: number;
+  menuDetachedRoots: string[];
+}
+
+export interface NavigationReport {
+  slug: string;
+  name: string;
+  action: "create" | "overwrite" | "skip";
+  locales: Record<string, MigrationLocaleReport>;
+}
+
+export interface MigrationReport {
+  mode: "scan" | "run";
+  ok: boolean;
+  reason?: string;
+  navigations: NavigationReport[];
+  morphDuplicatesDeduped: number;
+  warnings: string[];
+}

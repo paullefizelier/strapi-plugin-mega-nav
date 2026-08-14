@@ -195,6 +195,32 @@ const Editor = () => {
     return all;
   }, [state.tree, layoutOf, brokenRefs]);
 
+  const issuesByNode = React.useMemo(() => {
+    const map = new Map<string, { degrade: number; warning: number }>();
+    for (const issue of issues) {
+      const entry = map.get(issue.nodeId) ?? { degrade: 0, warning: 0 };
+      entry[issue.severity] += 1;
+      map.set(issue.nodeId, entry);
+    }
+    return map;
+  }, [issues]);
+
+  // Field ↔ preview-zone cross-highlighting: hovering a field in the panel
+  // lights up the zones it feeds; hovering a preview zone lights up its field.
+  const [hoveredField, setHoveredField] = React.useState<string | null>(null);
+  const [hoveredZone, setHoveredZone] = React.useState<string | null>(null);
+  const highlightZones = React.useMemo(() => {
+    const zones = new Set<string>();
+    if (hoveredField && governingLayout) {
+      for (const level of governingLayout.levels) {
+        for (const use of level.fields) {
+          if (use.field === hoveredField) zones.add(use.zone);
+        }
+      }
+    }
+    return zones;
+  }, [hoveredField, governingLayout]);
+
   const issueText = (issue: LintIssue): string => {
     switch (issue.code) {
       case "will-degrade":
@@ -375,6 +401,8 @@ const Editor = () => {
                   spec={governingLayout}
                   selectedId={state.selectedId}
                   onSelect={(id) => dispatch({ type: "select", id })}
+                  highlightZones={highlightZones}
+                  onZoneHover={setHoveredZone}
                 />
               </Box>
             ) : null}
@@ -399,6 +427,7 @@ const Editor = () => {
                   selectedId={state.selectedId}
                   maxDepth={MAX_DEPTH}
                   brokenRefs={brokenRefs}
+                  issuesByNode={issuesByNode}
                   dispatch={dispatch}
                 />
               </Flex>
@@ -415,6 +444,8 @@ const Editor = () => {
                   sources={sources}
                   locale={locale}
                   resolvedRefs={resolvedRefs}
+                  hoveredZone={hoveredZone}
+                  onFieldHover={setHoveredField}
                   dispatch={dispatch}
                 />
               ) : (

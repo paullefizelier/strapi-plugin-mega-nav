@@ -85,8 +85,40 @@ const IconDot = styled.span`
 interface Ctx {
   selectedId: string | null;
   onSelect: (id: string) => void;
+  /** Zones fed by the field currently hovered in the item panel. */
+  highlightZones: Set<string>;
+  /** Reports the preview zone under the pointer (cross-highlights its field). */
+  onZoneHover: (zone: string | null) => void;
   t: (id: string, defaultMessage: string, values?: Record<string, string | number>) => string;
 }
+
+const ZoneBox = styled.div<{ $hl: boolean }>`
+  border-radius: 6px;
+  outline: ${({ $hl }) => ($hl ? "2px solid #ffd166" : "none")};
+  outline-offset: 1px;
+`;
+
+/** Named preview zone — one end of the field ↔ zone cross-highlight. */
+const Zone = ({
+  name,
+  ctx,
+  children,
+  style,
+}: {
+  name: string;
+  ctx: Ctx;
+  children: React.ReactNode;
+  style?: React.CSSProperties;
+}) => (
+  <ZoneBox
+    $hl={ctx.highlightZones.has(name)}
+    onMouseEnter={() => ctx.onZoneHover(name)}
+    onMouseLeave={() => ctx.onZoneHover(null)}
+    style={style}
+  >
+    {children}
+  </ZoneBox>
+);
 
 const mediaUrl = (node: NavNode, field = "image"): string | null => {
   const value = node.fields[field];
@@ -99,18 +131,58 @@ const str = (node: NavNode, field: string): string | null => {
   return typeof value === "string" && value ? value : null;
 };
 
-const ImageZone = ({ node, ctx, height = 90, label }: { node: NavNode; ctx: Ctx; height?: number; label: string }) => {
+const ImageZone = ({
+  node,
+  ctx,
+  height = 90,
+  label,
+  zone = "promo.image",
+}: {
+  node: NavNode;
+  ctx: Ctx;
+  height?: number;
+  label: string;
+  zone?: string;
+}) => {
   const url = mediaUrl(node);
-  return url ? (
-    <div style={{ height }}>
-      <Img src={url} alt="" />
-    </div>
-  ) : (
-    <Placeholder style={{ height }}>{label}</Placeholder>
+  return (
+    <Zone name={zone} ctx={ctx}>
+      {url ? (
+        <div style={{ height }}>
+          <Img src={url} alt="" />
+        </div>
+      ) : (
+        <Placeholder style={{ height }}>{label}</Placeholder>
+      )}
+    </Zone>
   );
 };
 
-const PromoPanel = ({ node, ctx, banner = false }: { node: NavNode; ctx: Ctx; banner?: boolean }) => (
+/** Zone names for a promo-style panel; overridable (teams reuses it with team.*). */
+interface PromoZones {
+  title: string;
+  subtitle: string;
+  image: string;
+  cta: string;
+}
+const PROMO_ZONES: PromoZones = {
+  title: "promo.title",
+  subtitle: "promo.subtitle",
+  image: "promo.image",
+  cta: "promo.cta",
+};
+
+const PromoPanel = ({
+  node,
+  ctx,
+  banner = false,
+  zones = PROMO_ZONES,
+}: {
+  node: NavNode;
+  ctx: Ctx;
+  banner?: boolean;
+  zones?: PromoZones;
+}) => (
   <Clickable
     $selected={ctx.selectedId === node.id}
     onClick={(e) => {
@@ -121,22 +193,44 @@ const PromoPanel = ({ node, ctx, banner = false }: { node: NavNode; ctx: Ctx; ba
   >
     <Flex direction={banner ? "row" : "column"} gap={2} alignItems={banner ? "center" : "stretch"}>
       <div style={{ flex: banner ? "0 0 160px" : undefined }}>
-        <ImageZone node={node} ctx={ctx} height={banner ? 60 : 90} label={ctx.t("preview.zone-image", "promo image")} />
+        <ImageZone node={node} ctx={ctx} height={banner ? 60 : 90} label={ctx.t("preview.zone-image", "promo image")} zone={zones.image} />
       </div>
       <Flex direction="column" gap={1} alignItems="flex-start">
-        {str(node, "description") ? (
-          <Title $bold>{str(node, "description")}</Title>
-        ) : (
-          <Placeholder style={{ width: "100%" }}>{ctx.t("preview.zone-promo-title", "description = promo title")}</Placeholder>
-        )}
-        {str(node, "tagline") ? <Muted>{str(node, "tagline")}</Muted> : null}
-        {str(node, "ctaLabel") ? <Cta>{str(node, "ctaLabel")}</Cta> : null}
+        <Zone name={zones.title} ctx={ctx} style={{ width: "100%" }}>
+          {str(node, "description") ? (
+            <Title $bold>{str(node, "description")}</Title>
+          ) : (
+            <Placeholder style={{ width: "100%" }}>{ctx.t("preview.zone-promo-title", "description = promo title")}</Placeholder>
+          )}
+        </Zone>
+        {str(node, "tagline") ? (
+          <Zone name={zones.subtitle} ctx={ctx}>
+            <Muted>{str(node, "tagline")}</Muted>
+          </Zone>
+        ) : null}
+        {str(node, "ctaLabel") ? (
+          <Zone name={zones.cta} ctx={ctx}>
+            <Cta>{str(node, "ctaLabel")}</Cta>
+          </Zone>
+        ) : null}
       </Flex>
     </Flex>
   </Clickable>
 );
 
-const LinkRow = ({ node, ctx, withDescription = false, withIcon = true }: { node: NavNode; ctx: Ctx; withDescription?: boolean; withIcon?: boolean }) => (
+const LinkRow = ({
+  node,
+  ctx,
+  withDescription = false,
+  withIcon = true,
+  zonePrefix = "link",
+}: {
+  node: NavNode;
+  ctx: Ctx;
+  withDescription?: boolean;
+  withIcon?: boolean;
+  zonePrefix?: string;
+}) => (
   <Clickable
     $selected={ctx.selectedId === node.id}
     onClick={(e) => {
@@ -146,10 +240,18 @@ const LinkRow = ({ node, ctx, withDescription = false, withIcon = true }: { node
     style={{ padding: "6px 8px" }}
   >
     <Flex gap={2} alignItems="center">
-      {withIcon && str(node, "icon") ? <IconDot /> : null}
+      {withIcon && str(node, "icon") ? (
+        <Zone name={`${zonePrefix}.icon`} ctx={ctx}>
+          <IconDot />
+        </Zone>
+      ) : null}
       <Flex direction="column" alignItems="flex-start" style={{ minWidth: 0 }}>
         <Title>{node.title}</Title>
-        {withDescription && str(node, "description") ? <Muted>{str(node, "description")}</Muted> : null}
+        {withDescription && str(node, "description") ? (
+          <Zone name={`${zonePrefix}.description`} ctx={ctx}>
+            <Muted>{str(node, "description")}</Muted>
+          </Zone>
+        ) : null}
       </Flex>
     </Flex>
   </Clickable>
@@ -173,7 +275,7 @@ const RowList = ({ root, ctx }: { root: NavNode; ctx: Ctx }) => {
       {imageStart ? promo : null}
       <Flex direction="column" alignItems="stretch" gap={1} style={{ flex: 1 }}>
         {root.children.map((child) => (
-          <LinkRow key={child.id} node={child} ctx={ctx} withDescription />
+          <LinkRow key={child.id} node={child} ctx={ctx} withDescription zonePrefix="row" />
         ))}
       </Flex>
       {!imageStart ? promo : null}
@@ -194,9 +296,13 @@ const CardGrid = ({ root, ctx }: { root: NavNode; ctx: Ctx }) => (
         style={{ padding: 8, background: "rgba(255,255,255,0.04)" }}
       >
         <Flex direction="column" alignItems="stretch" gap={1}>
-          <ImageZone node={child} ctx={ctx} height={56} label={ctx.t("preview.zone-card-image", "image / icon")} />
+          <ImageZone node={child} ctx={ctx} height={56} label={ctx.t("preview.zone-card-image", "image / icon")} zone="card.image" />
           <Title>{child.title}</Title>
-          {str(child, "description") ? <Muted>{str(child, "description")}</Muted> : null}
+          {str(child, "description") ? (
+            <Zone name="card.description" ctx={ctx}>
+              <Muted>{str(child, "description")}</Muted>
+            </Zone>
+          ) : null}
         </Flex>
       </Clickable>
     ))}
@@ -216,13 +322,15 @@ const Mosaic = ({ root, ctx }: { root: NavNode; ctx: Ctx }) => {
           }}
           style={{ gridColumn: "span 2", gridRow: "span 2", position: "relative", overflow: "hidden", background: "rgba(255,255,255,0.05)" }}
         >
-          {mediaUrl(hero) ? <Img src={mediaUrl(hero)!} alt="" /> : <Placeholder style={{ height: "100%" }}>{ctx.t("preview.zone-hero", "hero tile — image")}</Placeholder>}
+          <Zone name="tile.image" ctx={ctx} style={{ height: "100%" }}>
+            {mediaUrl(hero) ? <Img src={mediaUrl(hero)!} alt="" /> : <Placeholder style={{ height: "100%" }}>{ctx.t("preview.zone-hero", "hero tile — image")}</Placeholder>}
+          </Zone>
           <div style={{ position: "absolute", left: 8, bottom: 8 }}>
             <Title $bold>{hero.title}</Title>
             {str(hero, "description") ? (
-              <div>
+              <Zone name="tile.description" ctx={ctx}>
                 <Muted>{str(hero, "description")}</Muted>
-              </div>
+              </Zone>
             ) : null}
           </div>
         </Clickable>
@@ -258,6 +366,8 @@ const GroupColumn = ({ group, ctx }: { group: NavNode; ctx: Ctx }) => (
       padding: 8,
       background: group.fields.highlight === true ? "rgba(123,121,255,0.12)" : "transparent",
       border: group.fields.highlight === true ? "1px solid rgba(123,121,255,0.5)" : "1px solid transparent",
+      // The `highlight` field's zone is the column's accent ring itself.
+      outline: ctx.highlightZones.has("group.highlight") ? "2px solid #ffd166" : undefined,
       flex: 1,
       minWidth: 130,
     }}
@@ -266,11 +376,19 @@ const GroupColumn = ({ group, ctx }: { group: NavNode; ctx: Ctx }) => (
       <Typography variant="sigma" style={{ color: "rgba(255,255,255,0.5)" }}>
         {group.title}
       </Typography>
-      {str(group, "description") ? <Muted>{str(group, "description")}</Muted> : null}
+      {str(group, "description") ? (
+        <Zone name="group.description" ctx={ctx}>
+          <Muted>{str(group, "description")}</Muted>
+        </Zone>
+      ) : null}
       {group.children.map((link) => (
         <LinkRow key={link.id} node={link} ctx={ctx} withIcon={false} />
       ))}
-      {str(group, "ctaLabel") ? <Cta>{str(group, "ctaLabel")}</Cta> : null}
+      {str(group, "ctaLabel") ? (
+        <Zone name="group.cta" ctx={ctx}>
+          <Cta>{str(group, "ctaLabel")}</Cta>
+        </Zone>
+      ) : null}
     </Flex>
   </Clickable>
 );
@@ -320,8 +438,18 @@ const LinksPromo = ({ root, ctx, params }: { root: NavNode; ctx: Ctx; params: Re
       <Flex gap={4} alignItems="flex-start">
         {links}
         <div style={{ flex: "0 0 220px" }}>
-          <ImageZone node={active} ctx={ctx} height={130} label={ctx.t("preview.zone-hover", "image follows the hovered link")} />
-          {str(root, "tagline") ? <Muted>{str(root, "tagline")}</Muted> : null}
+          <ImageZone
+            node={active}
+            ctx={ctx}
+            height={130}
+            label={ctx.t("preview.zone-hover", "image follows the hovered link")}
+            zone={active === root ? "promo.image" : "link.image"}
+          />
+          {str(root, "tagline") ? (
+            <Zone name="promo.subtitle" ctx={ctx}>
+              <Muted>{str(root, "tagline")}</Muted>
+            </Zone>
+          ) : null}
         </div>
       </Flex>
     );
@@ -342,7 +470,15 @@ const TabsDetail = ({ root, ctx }: { root: NavNode; ctx: Ctx }) => {
     <Flex direction="column" alignItems="stretch" gap={3}>
       <Flex gap={4} alignItems="flex-start">
         <div style={{ flex: "0 0 200px" }}>
-          <PromoPanel node={active ?? root} ctx={ctx} />
+          <PromoPanel
+            node={active ?? root}
+            ctx={ctx}
+            zones={
+              active
+                ? { title: "team.description", subtitle: "team.tagline", image: "team.image", cta: "team.cta" }
+                : PROMO_ZONES
+            }
+          />
         </div>
         <Flex direction="column" alignItems="stretch" gap={1} style={{ flex: "0 0 180px" }}>
           {root.children.map((team) => (
@@ -356,7 +492,11 @@ const TabsDetail = ({ root, ctx }: { root: NavNode; ctx: Ctx }) => {
                 style={{ padding: "6px 8px", background: team.id === active?.id ? "rgba(255,255,255,0.07)" : "transparent" }}
               >
                 <Title>{team.title}</Title>
-                {str(team, "offerBrand") ? <Muted> · {str(team, "offerBrand")}</Muted> : null}
+                {str(team, "offerBrand") ? (
+                  <Zone name="team.offers" ctx={ctx} style={{ display: "inline-block" }}>
+                    <Muted> · {str(team, "offerBrand")}</Muted>
+                  </Zone>
+                ) : null}
               </Clickable>
             </div>
           ))}
@@ -367,13 +507,15 @@ const TabsDetail = ({ root, ctx }: { root: NavNode; ctx: Ctx }) => {
           ))}
         </Flex>
       </Flex>
-      {str(root, "ctaLabel") ? (
-        <Flex justifyContent="center">
-          <Cta>{str(root, "ctaLabel")}</Cta>
-        </Flex>
-      ) : (
-        <Placeholder>{ctx.t("preview.zone-footer-cta", "footer CTA (label + url)")}</Placeholder>
-      )}
+      <Zone name="footer.cta" ctx={ctx}>
+        {str(root, "ctaLabel") ? (
+          <Flex justifyContent="center">
+            <Cta>{str(root, "ctaLabel")}</Cta>
+          </Flex>
+        ) : (
+          <Placeholder>{ctx.t("preview.zone-footer-cta", "footer CTA (label + url)")}</Placeholder>
+        )}
+      </Zone>
     </Flex>
   );
 };
@@ -394,13 +536,17 @@ interface PreviewProps {
   spec: LayoutSpec | null;
   selectedId: string | null;
   onSelect: (id: string) => void;
+  highlightZones?: Set<string>;
+  onZoneHover?: (zone: string | null) => void;
 }
 
-const Preview = ({ root, spec, selectedId, onSelect }: PreviewProps) => {
+const NO_ZONES = new Set<string>();
+
+const Preview = ({ root, spec, selectedId, onSelect, highlightZones = NO_ZONES, onZoneHover = () => {} }: PreviewProps) => {
   const { formatMessage } = useIntl();
   const t = (id: string, defaultMessage: string, values?: Record<string, string | number>) =>
     formatMessage({ id: getTranslation(id), defaultMessage }, values);
-  const ctx: Ctx = { selectedId, onSelect, t };
+  const ctx: Ctx = { selectedId, onSelect, highlightZones, onZoneHover, t };
 
   // The one behavior that must be pixel-true: the front's fallback decision.
   const flat = !root.children.some((child) => child.children.length > 0);
