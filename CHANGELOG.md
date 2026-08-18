@@ -7,6 +7,8 @@ carry breaking changes.
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-08-18
+
 ### Added
 
 - **Three layouts.** `directory` — a dense index with no promo, for sets too long
@@ -27,7 +29,7 @@ carry breaking changes.
   metadata claimed to drive the preview while mostly decorating it. `linksPromo`
   also gains a `promo: "none"` mode and honours `cols`.
 
-### Added (earlier in this cycle)
+### Added (configuration transfer)
 
 - **Export / import of the field and layout schemas.** Both settings screens gain
   a JSON download and upload, so a configuration built on staging can be moved to
@@ -119,7 +121,8 @@ First release.
 - **Health check** for broken references, dead media and hand-typed paths.
 - RBAC actions `read`, `update`, `settings`, `migrate`.
 
-[Unreleased]: https://github.com/paullefizelier/strapi-plugin-mega-nav/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/paullefizelier/strapi-plugin-mega-nav/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/paullefizelier/strapi-plugin-mega-nav/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/paullefizelier/strapi-plugin-mega-nav/compare/v0.1.2...v0.2.0
 [0.1.2]: https://github.com/paullefizelier/strapi-plugin-mega-nav/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/paullefizelier/strapi-plugin-mega-nav/compare/v0.1.0...v0.1.1
