@@ -1,6 +1,6 @@
 {
   "name": "strapi-plugin-mega-nav",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Smart navigation for Strapi — a visual mega-menu editor with true internal links, restart-free field config, native i18n, and a built-in importer for strapi-plugin-navigation data.",
   "keywords": [
     "strapi",

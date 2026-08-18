@@ -113,6 +113,37 @@ locales in Strapi v5, so the render resolves each reference *in the requested
 locale* — the French menu gets the French slug, the English one the English slug,
 from the same reference.
 
+### Machine-translated menus
+
+Because the links take care of themselves, translating a menu is only about the
+prose. **Copy and translate** copies the structure from a source locale and
+sends every label through a translation provider in a single batched call —
+one request for the whole menu, so labels are translated in the context of
+their siblings rather than one by one.
+
+What gets translated is decided **per field**, under Settings → Fields: prose is,
+identifiers are not. An icon id, a CTA URL, a layout key or a lookup key like
+`offerBrand` would break if rewritten, so they are copied verbatim; the default
+follows the field type and can be overridden field by field.
+
+By default the pass **only fills the gaps** — a label already translated on the
+target locale is kept, so a reviewed wording survives a re-run. Tick the box to
+retranslate everything.
+
+Two things are reported when it finishes, because both would otherwise be found
+by a visitor: labels the provider returned unusable (they keep their source
+text), and **linked entries that have no version in the target locale** — those
+resolve to nothing and render as plain headings until the entry itself is
+translated.
+
+Credentials live in **Settings → Mega Nav → Translation**: pick a provider —
+Google (Gemini), OpenAI, Anthropic or Mistral — a model, and a key. The key is
+stored server-side and never returned to the browser; a **Test** button
+round-trips one word so you can prove it works before running a menu through it.
+Resolution order, first match wins: saved in the admin, then `config/plugins.ts`
+(`ai: { provider, model, apiKey }`), then the environment (`MEGA_NAV_AI_KEY`, or
+the provider's usual variable such as `GEMINI_API_KEY` or `OPENAI_API_KEY`).
+
 ## Install
 
 ```bash
@@ -232,6 +263,18 @@ A typed link object instead of the `type`/`path`/`externalPath` trio, fields
 flattened and pruned to the levels they apply to. Worth adopting when you touch
 the front anyway; `v1` stays supported.
 
+## Rendering it — starter templates
+
+[`examples/`](./examples) holds copy-paste starting points for **React**,
+**Next.js** (App Router), **shadcn/ui**, **Nuxt** and **Astro**, plus a
+zero-dependency [core file](./examples/mega-nav.ts) with the types, the fetch and
+the link helpers that all of them share.
+
+Each one fetches from a server context — a Next server component, a Nuxt server
+route, Astro frontmatter — so an API token never reaches the browser, maps
+`presentation` to a panel component, and mirrors the degradation rule so a
+grouped layout on a flat tree renders as a usable list instead of empty columns.
+
 ## Migrating from strapi-plugin-navigation
 
 **Settings → Mega Nav → Migration** reads the old plugin's tables directly — it
@@ -285,6 +328,8 @@ Every route requires an authenticated admin plus one permission, registered unde
 | `POST` | `/mega-nav/fields/:name/purge` | settings |
 | `GET` · `PUT` | `/mega-nav/layouts` | read · settings |
 | `POST` | `/mega-nav/layouts/reset` | settings |
+| `GET` · `PUT` | `/mega-nav/ai` | read · settings |
+| `POST` | `/mega-nav/ai/test` | settings |
 | `GET` | `/mega-nav/sources` · `/mega-nav/sources/:uid/entries` | read |
 | `POST` | `/mega-nav/entries/resolve` | read |
 | `GET` | `/mega-nav/health` | read |

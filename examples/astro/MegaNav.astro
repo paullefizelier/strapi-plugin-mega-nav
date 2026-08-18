@@ -1,0 +1,171 @@
+---
+/**
+ * Astro — put this in `src/components/MegaNav.astro` and use it as
+ * `<MegaNav slug="main-navigation" />`.
+ *
+ * The fetch happens in the frontmatter, which runs on the server (or at build
+ * time in a static build), so the token is never exposed. Only the small
+ * dropdown script ships to the browser — the menu itself is plain HTML.
+ *
+ * Env (`.env`): `STRAPI_URL` and `STRAPI_TOKEN`. Both stay server-side because
+ * neither is prefixed with `PUBLIC_`.
+ */
+import { effectiveLayout, fetchNavigation, image, linkProps, text } from "../mega-nav";
+
+interface Props {
+  slug?: string;
+  locale?: string;
+}
+
+const { slug = "main-navigation", locale } = Astro.props;
+
+const items = await fetchNavigation(slug, {
+  baseUrl: import.meta.env.STRAPI_URL ?? "http://localhost:1337",
+  token: import.meta.env.STRAPI_TOKEN,
+  locale,
+});
+
+const GROUPED = ["columns", "split", "banner"];
+---
+
+<nav aria-label="Main" class="mega-nav">
+  <ul class="flex items-center gap-1">
+    {
+      items.map((item) => {
+        const trigger = linkProps(item);
+        const grouped = GROUPED.includes(effectiveLayout(item));
+        const promo = image(item);
+        const headline = text(item, "description");
+
+        return (
+          <li class="relative" data-mega-item>
+            {item.children.length === 0 ? (
+              trigger ? (
+                <a {...trigger} class="px-3 py-2 text-sm font-medium">{item.title}</a>
+              ) : (
+                <span class="px-3 py-2 text-sm font-medium">{item.title}</span>
+              )
+            ) : (
+              <>
+                <button
+                  type="button"
+                  aria-expanded="false"
+                  class="px-3 py-2 text-sm font-medium"
+                  data-mega-trigger
+                >
+                  {item.title}
+                </button>
+
+                <div
+                  hidden
+                  data-mega-panel
+                  class="absolute left-0 top-full z-50 rounded-xl border bg-white shadow-xl"
+                >
+                  {grouped ? (
+                    <div class="flex gap-8 p-6">
+                      <div class="grid flex-1 grid-cols-2 gap-x-8 gap-y-6 md:grid-cols-4">
+                        {item.children.map((group) => (
+                          <div class={group.fields.highlight === true ? "rounded-lg p-3 ring-1 ring-black/10" : ""}>
+                            <p class="mb-2 text-xs font-semibold uppercase tracking-wide opacity-50">
+                              {group.title}
+                            </p>
+                            <ul class="space-y-2">
+                              {group.children.map((link) => {
+                                const attrs = linkProps(link);
+                                const description = text(link, "description");
+                                const body = (
+                                  <>
+                                    <span class="block font-medium">{link.title}</span>
+                                    {description && (
+                                      <span class="mt-0.5 block text-xs opacity-60">{description}</span>
+                                    )}
+                                  </>
+                                );
+                                return (
+                                  <li>
+                                    {attrs ? (
+                                      <a {...attrs} class="block text-sm hover:underline">{body}</a>
+                                    ) : (
+                                      <span class="block text-sm">{body}</span>
+                                    )}
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          </div>
+                        ))}
+                      </div>
+
+                      {(promo || headline) && (
+                        <aside class="w-56 shrink-0 rounded-xl bg-black/5 p-4">
+                          {promo && (
+                            <img
+                              src={promo.url}
+                              alt={promo.alternativeText ?? ""}
+                              width={promo.width}
+                              height={promo.height}
+                              class="mb-3 h-24 w-full rounded-lg object-cover"
+                            />
+                          )}
+                          {headline && <p class="font-semibold">{headline}</p>}
+                          {text(item, "ctaLabel") && text(item, "ctaUrl") && (
+                            <a
+                              href={text(item, "ctaUrl")}
+                              class="mt-3 inline-block text-sm font-semibold underline"
+                            >
+                              {text(item, "ctaLabel")}
+                            </a>
+                          )}
+                        </aside>
+                      )}
+                    </div>
+                  ) : (
+                    <ul class="min-w-48 space-y-2 p-4">
+                      {item.children.map((child) => {
+                        const attrs = linkProps(child);
+                        return (
+                          <li>
+                            {attrs ? (
+                              <a {...attrs} class="text-sm hover:underline">{child.title}</a>
+                            ) : (
+                              <span class="text-sm">{child.title}</span>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </div>
+              </>
+            )}
+          </li>
+        );
+      })
+    }
+  </ul>
+</nav>
+
+<script>
+  // Hover to open, click to pin, Escape to close — a few lines instead of a
+  // framework runtime, since the markup is already rendered.
+  document.querySelectorAll<HTMLElement>("[data-mega-item]").forEach((item) => {
+    const trigger = item.querySelector<HTMLButtonElement>("[data-mega-trigger]");
+    const panel = item.querySelector<HTMLElement>("[data-mega-panel]");
+    if (!trigger || !panel) return;
+
+    const set = (open: boolean) => {
+      panel.hidden = !open;
+      trigger.setAttribute("aria-expanded", String(open));
+    };
+
+    item.addEventListener("mouseenter", () => set(true));
+    item.addEventListener("mouseleave", () => set(false));
+    trigger.addEventListener("click", () => set(panel.hidden));
+    item.addEventListener("keydown", (event) => {
+      if ((event as KeyboardEvent).key === "Escape") {
+        set(false);
+        trigger.focus();
+      }
+    });
+  });
+</script>
