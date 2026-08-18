@@ -85,12 +85,22 @@ const IconDot = styled.span`
 interface Ctx {
   selectedId: string | null;
   onSelect: (id: string) => void;
+  /**
+   * The governing layout, so a template can ask what a level actually uses
+   * instead of guessing. Without it the preview would show a description the
+   * front has no slot for — a lie in the one place that must not lie.
+   */
+  spec: LayoutSpec | null;
   /** Zones fed by the field currently hovered in the item panel. */
   highlightZones: Set<string>;
   /** Reports the preview zone under the pointer (cross-highlights its field). */
   onZoneHover: (zone: string | null) => void;
   t: (id: string, defaultMessage: string, values?: Record<string, string | number>) => string;
 }
+
+/** Does the layout declare this field at that depth (1-based)? */
+const levelUses = (spec: LayoutSpec | null, depth: number, field: string): boolean =>
+  Boolean(spec?.levels[depth - 1]?.fields.some((use) => use.field === field));
 
 const ZoneBox = styled.div<{ $hl: boolean }>`
   border-radius: 6px;
@@ -382,7 +392,15 @@ const GroupColumn = ({ group, ctx }: { group: NavNode; ctx: Ctx }) => (
         </Zone>
       ) : null}
       {group.children.map((link) => (
-        <LinkRow key={link.id} node={link} ctx={ctx} withIcon={false} />
+        <LinkRow
+          key={link.id}
+          node={link}
+          ctx={ctx}
+          withIcon={false}
+          // Level 3 in a grouped layout: only render the description where the
+          // layout actually places one.
+          withDescription={levelUses(ctx.spec, 3, "description")}
+        />
       ))}
       {str(group, "ctaLabel") ? (
         <Zone name="group.cta" ctx={ctx}>
@@ -546,7 +564,7 @@ const Preview = ({ root, spec, selectedId, onSelect, highlightZones = NO_ZONES, 
   const { formatMessage } = useIntl();
   const t = (id: string, defaultMessage: string, values?: Record<string, string | number>) =>
     formatMessage({ id: getTranslation(id), defaultMessage }, values);
-  const ctx: Ctx = { selectedId, onSelect, highlightZones, onZoneHover, t };
+  const ctx: Ctx = { selectedId, onSelect, spec, highlightZones, onZoneHover, t };
 
   // The one behavior that must be pixel-true: the front's fallback decision.
   const flat = !root.children.some((child) => child.children.length > 0);

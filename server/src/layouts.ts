@@ -176,11 +176,20 @@ export const DEFAULT_LAYOUTS: LayoutSpec[] = [
     key: "split",
     label: "Split",
     recipe:
-      "50/50: campaign visual left, link groups right. Root: image + description + tagline + CTA. Level 2: group titles. Level 3: links.",
+      "50/50: campaign visual left, link groups right. Root: image + description + tagline + CTA. Level 2: group titles. Level 3: links, each with an optional description shown under its label.",
     levels: [
       { role: "root", label: "Menu", childrenAllowed: true, fields: promoFields() },
       { role: "group", label: "Group", childrenAllowed: true, min: 1, fields: [] },
-      linkLevel(),
+      {
+        ...linkLevel(),
+        fields: [
+          {
+            field: "description",
+            zone: "link.description",
+            hint: "Optional line shown under the link label",
+          },
+        ],
+      },
     ],
     preview: { template: "linksPromo", params: { promo: "left-split", grouped: true } },
   },
@@ -188,11 +197,20 @@ export const DEFAULT_LAYOUTS: LayoutSpec[] = [
     key: "banner",
     label: "Banner",
     recipe:
-      "Link columns + bottom panoramic banner. Root: image + description + tagline + CTA (banner). Level 2: group titles. Level 3: links.",
+      "Link columns + bottom panoramic banner. Root: image + description + tagline + CTA (banner). Level 2: group titles. Level 3: links, each with an optional description shown under its label.",
     levels: [
       { role: "root", label: "Menu", childrenAllowed: true, fields: promoFields() },
       { role: "group", label: "Group", childrenAllowed: true, min: 1, fields: [] },
-      linkLevel(),
+      {
+        ...linkLevel(),
+        fields: [
+          {
+            field: "description",
+            zone: "link.description",
+            hint: "Optional line shown under the link label",
+          },
+        ],
+      },
     ],
     preview: { template: "linksPromo", params: { promo: "bottom-banner", grouped: true } },
   },
@@ -228,7 +246,7 @@ export const DEFAULT_LAYOUTS: LayoutSpec[] = [
     key: "columns",
     label: "Columns",
     recipe:
-      "Grouped columns + right promo. Root: image + description (promo title) + tagline + CTA. Level 2 (groups): title + optional description, CTA, highlight. Level 3: links.",
+      "Grouped columns + right promo. Root: image + description (promo title) + tagline + CTA. Level 2 (groups): title + optional description, CTA, highlight. Level 3: links, each with an optional description shown under its label.",
     levels: [
       { role: "root", label: "Menu", childrenAllowed: true, fields: promoFields() },
       {
@@ -243,7 +261,16 @@ export const DEFAULT_LAYOUTS: LayoutSpec[] = [
           { field: "ctaUrl", zone: "group.cta" },
         ],
       },
-      linkLevel(),
+      {
+        ...linkLevel(),
+        fields: [
+          {
+            field: "description",
+            zone: "link.description",
+            hint: "Optional line shown under the link label",
+          },
+        ],
+      },
     ],
     preview: { template: "linksPromo", params: { promo: "right", grouped: true, cols: 4 } },
   },
