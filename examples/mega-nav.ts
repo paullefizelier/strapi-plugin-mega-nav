@@ -123,14 +123,22 @@ export const image = (item: NavItem, field = "image"): NavImage | undefined => {
 export const presentation = (item: NavItem): string => text(item, "presentation") ?? "simple";
 
 /**
+ * Layouts that need level-2 groups. The render payload carries no layout
+ * metadata, so this list lives here — extend it if you declare a grouped layout
+ * of your own in the plugin's Layouts settings.
+ */
+export const DEFAULT_GROUPED_LAYOUTS = ["columns", "split", "banner", "teams"];
+
+/**
  * Mirrors the plugin's degradation rule: a layout that needs level-2 groups,
  * used on a flat tree, renders as `simple`. Keep this — without it a mis-shaped
  * menu renders as empty columns instead of a usable list.
  */
-const GROUPED = new Set(["columns", "split", "banner", "teams"]);
-
-export function effectiveLayout(item: NavItem): string {
+export function effectiveLayout(
+  item: NavItem,
+  groupedLayouts: readonly string[] = DEFAULT_GROUPED_LAYOUTS,
+): string {
   const layout = presentation(item);
   const grouped = item.children.some((child) => child.children.length > 0);
-  return GROUPED.has(layout) && !grouped ? "simple" : layout;
+  return groupedLayouts.includes(layout) && !grouped ? "simple" : layout;
 }

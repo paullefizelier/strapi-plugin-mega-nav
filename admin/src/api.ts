@@ -69,6 +69,13 @@ export function useMegaNavApi() {
       const { data } = await get<{ layouts: LayoutSpec[] }>(`${base}/layouts`);
       return data.layouts;
     },
+    /** Whether machine translation can run — the editor gates its option on this. */
+    async getAi(): Promise<{ configured: boolean; provider: string; model: string }> {
+      const { data } = await get<{ configured: boolean; provider: string; model: string }>(
+        `${base}/ai`,
+      );
+      return data;
+    },
     async getSources(): Promise<SourceInfo[]> {
       const { data } = await get<{ sources: SourceInfo[] }>(`${base}/sources`);
       return data.sources;

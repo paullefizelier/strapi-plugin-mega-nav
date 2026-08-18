@@ -130,7 +130,11 @@ async function callProvider(
   system: string,
   user: string,
 ): Promise<string> {
-  if (!apiKey) throw new Error("No API key configured for machine translation");
+  if (!apiKey) {
+    throw new Error(
+      "Machine translation is not configured — add a provider key under Settings → Mega Nav → Translation",
+    );
+  }
 
   if (provider === "google") {
     const res = await fetch(

@@ -80,9 +80,17 @@ Ten fields ship as the default schema: `presentation`, `description`, `icon`,
 `offerBrand`. Types available: `string`, `text`, `boolean`, `select`, `media`,
 `url`, `number`.
 
+Each field also carries a **`translatable`** flag used by the translation pass —
+absent, it follows the type: prose yes, identifiers no.
+
 Deleting a field that holds data asks you to choose: **disable** it (hidden from
 the form, values preserved) or **delete and purge** (values stripped from every
 tree, behind a typed confirmation). Nothing disappears by accident.
+
+Because fields and layouts live in the store rather than a file, both screens
+offer **Export / Import JSON**: build the schema on staging, download it, import
+it in production. Imports go through the same validation as a manual edit, so a
+hand-tweaked file is rejected with a reason instead of corrupting the store.
 
 ### Layouts that describe themselves
 

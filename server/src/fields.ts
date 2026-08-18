@@ -105,6 +105,12 @@ export function validateFieldDefs(defs: unknown): string[] {
     if (def.levels !== undefined && (!Array.isArray(def.levels) || def.levels.some((l) => !Number.isInteger(l) || l < 1))) {
       errors.push(`${at}: levels must be positive integers`);
     }
+    if (def.translatable !== undefined && typeof def.translatable !== "boolean") {
+      errors.push(`${at}: translatable must be a boolean`);
+    }
+    if (def.disabled !== undefined && typeof def.disabled !== "boolean") {
+      errors.push(`${at}: disabled must be a boolean`);
+    }
   });
   return errors;
 }

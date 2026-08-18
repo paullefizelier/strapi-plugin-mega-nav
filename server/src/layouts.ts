@@ -311,10 +311,12 @@ export const DEFAULT_LAYOUTS: LayoutSpec[] = [
   },
 ];
 
-/** Layouts whose level-2 must have children — a flat tree degrades to `simple` on the front. */
-export const GROUPED_LAYOUTS = new Set(
-  DEFAULT_LAYOUTS.filter((l) => l.levels.length >= 3).map((l) => l.key),
-);
+/**
+ * Whether a layout needs level-2 groups — the rule behind the front's fallback.
+ * Derived from the spec rather than a hardcoded list, so a layout added in the
+ * admin is covered without a release.
+ */
+export const needsGroups = (spec: LayoutSpec): boolean => spec.levels.length >= 3;
 
 export function validateLayoutSpecs(specs: unknown): string[] {
   const errors: string[] = [];

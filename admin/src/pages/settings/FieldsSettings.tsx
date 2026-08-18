@@ -25,12 +25,10 @@ import {
 import { ArrowDown, ArrowUp, Pencil, Plus, Trash } from "@strapi/icons";
 import { useNotification } from "@strapi/strapi/admin";
 import { useMegaNavApi } from "../../api";
+import ConfigTransfer from "../../components/ConfigTransfer";
+import { isTranslatable } from "../../fields";
 import { getTranslation } from "../../getTranslation";
 import type { FieldDef, FieldType } from "../../types";
-
-/** Mirrors the server default: prose is translated, identifiers are not. */
-const isTranslatable = (def: FieldDef): boolean =>
-  def.disabled ? false : (def.translatable ?? (def.type === "string" || def.type === "text"));
 
 const FIELD_TYPES: FieldType[] = ["string", "text", "boolean", "select", "media", "url", "number"];
 
@@ -131,7 +129,23 @@ const FieldsSettings = () => {
           </Flex>
         </Flex>
 
-        <Table colCount={6} rowCount={fields.length}>
+        <ConfigTransfer
+          name="fields"
+          value={fields}
+          disabled={busy}
+          onImport={async (parsed) => {
+            if (!Array.isArray(parsed)) {
+              throw new Error(t("transfer.expected-array", "Expected a JSON array of field definitions."));
+            }
+            // Straight to the server: validateFieldDefs is the authority, so a
+            // hand-edited file comes back with a readable reason.
+            setFields(await api.setFields(parsed as FieldDef[]));
+            setDirty(false);
+            toggleNotification({ type: "success", message: t("transfer.imported", "Configuration imported.") });
+          }}
+        />
+
+        <Table colCount={7} rowCount={fields.length}>
           <Thead>
             <Tr>
               <Th>
@@ -150,7 +164,15 @@ const FieldsSettings = () => {
                 <Typography variant="sigma">{t("settings.fields.levels", "Levels")}</Typography>
               </Th>
               <Th>
-                <Typography variant="sigma">{t("fields.translatable", "Translatable")}</Typography>
+                <Typography
+                  variant="sigma"
+                  title={t(
+                    "fields.translatable-hint",
+                    "Prose is translated by “Copy and translate”; identifiers must not be.",
+                  )}
+                >
+                  {t("fields.translatable", "Translatable")}
+                </Typography>
               </Th>
               <Th>
                 <Typography variant="sigma">{t("settings.fields.actions", "Actions")}</Typography>

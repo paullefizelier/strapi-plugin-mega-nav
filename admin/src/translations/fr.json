@@ -233,5 +233,14 @@
   "editor.copy-and-translate": "Copier et traduire",
   "editor.copied-translated": "{items} éléments · {translated} libellés traduits, {kept} conservés.",
   "editor.copy-untranslated": "{count} libellés sont revenus inexploitables et ont gardé leur texte source.",
-  "editor.copy-missing-entries": "{count} entrées liées n'ont pas de version « {locale} » — ces éléments s'afficheront en simple intitulé."
+  "editor.copy-missing-entries": "{count} entrées liées n'ont pas de version « {locale} » — ces éléments s'afficheront en simple intitulé.",
+  "transfer.export": "Exporter le JSON",
+  "transfer.import": "Importer un JSON",
+  "transfer.hint": "Pour transporter cette configuration d'un environnement à l'autre.",
+  "transfer.bad-json": "Ce fichier n'est pas un JSON valide.",
+  "transfer.imported": "Configuration importée.",
+  "transfer.expected-array": "Un tableau JSON de définitions de champs est attendu.",
+  "transfer.expected-array-layouts": "Un tableau JSON de layouts est attendu.",
+  "editor.copy-translate-off": "Copier et traduire — aucun fournisseur configuré",
+  "editor.copy-translate-setup": "La traduction automatique exige une clé de fournisseur — à renseigner dans Réglages → Mega Nav → Traduction."
 }

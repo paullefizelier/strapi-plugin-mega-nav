@@ -13,6 +13,7 @@ import {
 } from "@strapi/design-system";
 import { useNotification } from "@strapi/strapi/admin";
 import { useMegaNavApi } from "../../api";
+import ConfigTransfer from "../../components/ConfigTransfer";
 import { getTranslation } from "../../getTranslation";
 import type { LayoutSpec } from "../../types";
 
@@ -111,6 +112,22 @@ const LayoutsSettings = () => {
             </Button>
           </Flex>
         </Flex>
+
+        <ConfigTransfer
+          name="layouts"
+          value={layouts}
+          disabled={busy}
+          onImport={async (parsed) => {
+            if (!Array.isArray(parsed)) {
+              throw new Error(t("transfer.expected-array-layouts", "Expected a JSON array of layouts."));
+            }
+            setLayouts(await api.setLayouts(parsed as LayoutSpec[]));
+            // Imported content replaces the screen's state, so any half-edited
+            // JSON draft is now stale.
+            setDrafts({});
+            toggleNotification({ type: "success", message: t("transfer.imported", "Configuration imported.") });
+          }}
+        />
 
         <Accordion.Root>
           {layouts.map((layout) => (

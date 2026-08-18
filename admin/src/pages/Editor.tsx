@@ -69,6 +69,7 @@ const Editor = () => {
   const [layouts, setLayouts] = React.useState<LayoutSpec[]>([]);
   const [sources, setSources] = React.useState<SourceInfo[]>([]);
   const [resolvedRefs, setResolvedRefs] = React.useState<Map<string, ResolvedRef>>(new Map());
+  const [aiConfigured, setAiConfigured] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
   const [conflict, setConflict] = React.useState(false);
   const [createOpen, setCreateOpen] = React.useState(false);
@@ -78,16 +79,20 @@ const Editor = () => {
   const [state, dispatch] = React.useReducer(reducer, initialState);
 
   const load = React.useCallback(async () => {
-    const [navs, defs, specs, srcs] = await Promise.all([
+    const [navs, defs, specs, srcs, ai] = await Promise.all([
       api.listNavigations(),
       api.getFields(),
       api.getLayouts(),
       api.getSources(),
+      // Not fatal: without it the translate option is simply offered as
+      // unavailable rather than failing once clicked.
+      api.getAi().catch(() => ({ configured: false, provider: "", model: "" })),
     ]);
     setNavigations(navs);
     setFieldDefs(defs);
     setLayouts(specs);
     setSources(srcs.filter((s) => s.known));
+    setAiConfigured(ai.configured);
     return navs;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -507,6 +512,7 @@ const Editor = () => {
         open={copyOpen}
         locales={locales}
         target={locale}
+        aiConfigured={aiConfigured}
         onClose={() => setCopyOpen(false)}
         onCopy={async (from, mode, overwrite) => {
           setCopyOpen(false);
@@ -627,19 +633,27 @@ const CopyLocaleModal = ({
   open,
   locales,
   target,
+  aiConfigured,
   onClose,
   onCopy,
 }: {
   open: boolean;
   locales: string[];
   target: string;
+  aiConfigured: boolean;
   onClose: () => void;
   onCopy: (from: string, mode: CopyMode, overwrite: boolean) => void;
 }) => {
   const { formatMessage } = useIntl();
   const [from, setFrom] = React.useState("");
-  const [mode, setMode] = React.useState<CopyMode>("translate");
+  // Offering "translate" without a provider would fail on submit; default to
+  // the mode that can actually run.
+  const [mode, setMode] = React.useState<CopyMode>(aiConfigured ? "translate" : "structure");
   const [overwrite, setOverwrite] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!aiConfigured) setMode((current) => (current === "translate" ? "structure" : current));
+  }, [aiConfigured]);
   const t = (id: string, defaultMessage: string, values?: Record<string, string | number>) =>
     formatMessage({ id: getTranslation(id), defaultMessage }, values);
   const candidates = locales.filter((l) => l !== target);
@@ -664,8 +678,10 @@ const CopyLocaleModal = ({
               ))}
             </SingleSelect>
             <SingleSelect value={mode} onChange={(next: string | number) => setMode(next as CopyMode)}>
-              <SingleSelectOption value="translate">
-                {t("editor.copy-translate", "Copy and translate the labels")}
+              <SingleSelectOption value="translate" disabled={!aiConfigured}>
+                {aiConfigured
+                  ? t("editor.copy-translate", "Copy and translate the labels")
+                  : t("editor.copy-translate-off", "Copy and translate — no provider configured")}
               </SingleSelectOption>
               <SingleSelectOption value="structure">
                 {t("editor.copy-structure", "Structure only (keeps existing translations)")}
@@ -682,6 +698,15 @@ const CopyLocaleModal = ({
               >
                 {t("editor.copy-overwrite", "Retranslate the labels already translated here")}
               </Checkbox>
+            ) : null}
+
+            {!aiConfigured ? (
+              <Typography variant="pi" textColor="warning600">
+                {t(
+                  "editor.copy-translate-setup",
+                  "Machine translation needs a provider key — add one under Settings → Mega Nav → Translation.",
+                )}
+              </Typography>
             ) : null}
 
             <Typography variant="pi" textColor="neutral600">
