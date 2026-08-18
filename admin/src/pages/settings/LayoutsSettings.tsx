@@ -14,6 +14,7 @@ import {
 import { useNotification } from "@strapi/strapi/admin";
 import { useMegaNavApi } from "../../api";
 import ConfigTransfer from "../../components/ConfigTransfer";
+import LayoutThumbnail from "../../components/LayoutThumbnail";
 import { getTranslation } from "../../getTranslation";
 import type { LayoutSpec } from "../../types";
 
@@ -147,10 +148,22 @@ const LayoutsSettings = () => {
               </Accordion.Header>
               <Accordion.Content>
                 <Box padding={4}>
-                  <Flex direction="column" alignItems="stretch" gap={2}>
+                  <Flex direction="column" alignItems="stretch" gap={3}>
                     <Typography variant="pi" textColor="neutral600">
                       {layout.recipe}
                     </Typography>
+
+                    {/* Drawn from the layout's own levels and fields, so a
+                        layout added here shows a thumbnail without any code. */}
+                    <Box background="neutral100" hasRadius padding={2}>
+                      <Typography variant="sigma" textColor="neutral600">
+                        {t("settings.layouts.thumbnail", "What it looks like")}
+                      </Typography>
+                      <Box paddingTop={2}>
+                        <LayoutThumbnail spec={layout} />
+                      </Box>
+                    </Box>
+
                     <JSONInput
                       value={drafts[layout.key] ?? JSON.stringify(layout, null, 2)}
                       onChange={(value: string) =>

@@ -14,6 +14,7 @@ import {
   Typography,
 } from "@strapi/design-system";
 import FieldInput from "./FieldInput";
+import LayoutThumbnail from "./LayoutThumbnail";
 import LinkEditor from "./LinkEditor";
 import { getTranslation } from "../getTranslation";
 import type { EditorAction } from "../editor/reducer";
@@ -108,6 +109,15 @@ const ItemPanel = ({
               ))}
             </SingleSelect>
             <Field.Hint />
+
+            {/* Names alone don't tell an editor what "bento" or "split" mean.
+                The thumbnail is the same component as the live preview, drawn
+                with generated content. */}
+            {layout ? (
+              <Box paddingTop={2}>
+                <LayoutThumbnail spec={layout} scale={0.4} />
+              </Box>
+            ) : null}
           </Field.Root>
         ) : null}
 

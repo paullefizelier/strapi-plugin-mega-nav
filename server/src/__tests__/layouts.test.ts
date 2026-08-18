@@ -22,11 +22,27 @@ function makeStrapi(stored: unknown = null) {
 }
 
 describe("DEFAULT_LAYOUTS", () => {
-  it("ships the ten reference layouts, each valid", () => {
+  it("ships the reference layouts, each valid", () => {
     expect(DEFAULT_LAYOUTS.map((l) => l.key).sort()).toEqual(
-      ["banner", "bento", "cards", "columns", "featured", "list", "preview", "simple", "split", "teams"].sort(),
+      [
+        "banner", "bento", "brands", "cards", "columns", "directory", "featured",
+        "list", "preview", "simple", "split", "tabs", "teams",
+      ].sort(),
     );
     expect(validateLayoutSpecs(DEFAULT_LAYOUTS)).toEqual([]);
+  });
+
+  it("offers every layout in the presentation field's options", async () => {
+    const { DEFAULT_FIELDS } = await import("../fields");
+    const options = DEFAULT_FIELDS.find((f) => f.name === "presentation")?.options ?? [];
+    expect([...options].sort()).toEqual(DEFAULT_LAYOUTS.map((l) => l.key).sort());
+  });
+
+  it("only names preview templates the admin can render", () => {
+    const known = ["linkList", "rowList", "cardGrid", "mosaic", "linksPromo", "tabsDetail"];
+    for (const spec of DEFAULT_LAYOUTS) {
+      expect(known).toContain(spec.preview.template);
+    }
   });
 
   it("only references fields that exist in the default schema", async () => {
@@ -49,7 +65,7 @@ describe("DEFAULT_LAYOUTS", () => {
 describe("needsGroups", () => {
   it("is derived from the declared levels, not a hardcoded list", () => {
     const grouped = DEFAULT_LAYOUTS.filter(needsGroups).map((l) => l.key);
-    expect(grouped.sort()).toEqual(["banner", "columns", "split", "teams"].sort());
+    expect(grouped.sort()).toEqual(["banner", "columns", "directory", "split", "tabs", "teams"].sort());
     // A layout added in the admin is covered without touching the code.
     expect(
       needsGroups({

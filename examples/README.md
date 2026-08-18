@@ -82,10 +82,14 @@ const PANELS = { simple: SimplePanel, columns: ColumnsPanel };
 const Panel = PANELS[effectiveLayout(item)] ?? SimplePanel;
 ```
 
-The templates ship `simple` and a grouped `columns` (reused for `split` and
-`banner`). Add a case per layout you actually use — and declare it in the
-plugin's Layouts settings so the editor offers the right fields at the right
-depth and previews it.
+The React template ships `simple`, a grouped `columns` (reused for `split` and
+`banner`), plus `directory` (dense index), `tabs` (horizontal tabs) and
+`brands` (tiles tinted by each item's `color`). The others ship the first two
+and fall back for the rest — copy the panels across as you need them.
+
+Add a case per layout you actually use, and declare it in the plugin's Layouts
+settings so the editor offers the right fields at the right depth, previews it,
+and lists it in the layout gallery.
 
 ## Not published to npm
 

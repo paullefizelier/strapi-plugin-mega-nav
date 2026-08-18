@@ -96,9 +96,18 @@ hand-tweaked file is rejected with a reason instead of corrupting the store.
 
 A layout is metadata: which levels exist, what each level is called, how many
 children it expects, which fields feed which zone of the panel, and which
-wireframe approximates it. Ten layouts ship as defaults — `simple`, `list`,
-`cards`, `featured`, `bento`, `split`, `banner`, `preview`, `columns`, `teams` —
-and they are editable from **Settings → Mega Nav → Layouts**, with a reset.
+wireframe approximates it. Thirteen layouts ship as defaults — `simple`, `list`,
+`cards`, `featured`, `bento`, `split`, `banner`, `preview`, `columns`, `teams`,
+plus `directory` (a dense index for long sets, no promo), `tabs` (horizontal
+tabs over a grid of links) and `brands` (tiles tinted by each item's accent
+colour) — and they are editable from **Settings → Mega Nav → Layouts**, with a
+reset.
+
+That screen is also a **gallery**: each layout shows a thumbnail rendered from
+its own levels and fields, so an editor can see what `bento` or `split` mean
+before choosing one, and the picker on a level-1 item previews the layout it is
+about to apply. The sample content is derived from the spec, so a layout you add
+yourself gets a thumbnail with no code.
 
 That metadata is what drives the item form: at each depth you get the fields the
 layout actually uses, with the hint that explains what they do *there*. Anything

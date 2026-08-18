@@ -309,6 +309,70 @@ export const DEFAULT_LAYOUTS: LayoutSpec[] = [
     ],
     preview: { template: "tabsDetail", params: { depth: 4 } },
   },
+  {
+    key: "directory",
+    label: "Directory",
+    recipe:
+      "A dense index for long lists — sectors, trades, locations. No promo: the links take the whole panel. Level 2: column headings (a theme, or an initial). Level 3: links, each with an optional description.",
+    levels: [
+      { role: "root", label: "Menu", childrenAllowed: true, fields: [] },
+      { role: "group", label: "Column heading", childrenAllowed: true, min: 1, fields: [] },
+      {
+        ...linkLevel(),
+        fields: [
+          {
+            field: "description",
+            zone: "link.description",
+            hint: "Optional line shown under the link label",
+          },
+        ],
+      },
+    ],
+    // Six narrow columns and no promo — this layout is about density.
+    preview: { template: "linksPromo", params: { promo: "none", grouped: true, cols: 6 } },
+  },
+  {
+    key: "tabs",
+    label: "Tabs",
+    recipe:
+      "Horizontal tabs over a grid of links — for a handful of heavy categories. Level 2: the tabs. Level 3: groups inside the active tab. Level 4: links.",
+    levels: [
+      { role: "root", label: "Menu", childrenAllowed: true, fields: [] },
+      {
+        role: "tab",
+        label: "Tab",
+        childrenAllowed: true,
+        min: 2,
+        max: 6,
+        fields: [{ field: "icon", zone: "link.icon" }],
+      },
+      { role: "group", label: "Group", childrenAllowed: true, fields: [] },
+      linkLevel(),
+    ],
+    preview: { template: "tabsDetail", params: { orientation: "horizontal", promo: false } },
+  },
+  {
+    key: "brands",
+    label: "Brands",
+    recipe:
+      "A grid of tiles, each tinted by its own accent colour — for a group of brands or entities. Children: title + colour + logo or image + description + link.",
+    levels: [
+      { role: "root", label: "Menu", childrenAllowed: true, fields: [] },
+      {
+        role: "link",
+        label: "Brand",
+        childrenAllowed: false,
+        linkExpected: true,
+        min: 2,
+        fields: [
+          { field: "image", zone: "card.image", hint: "Logo or visual" },
+          { field: "color", zone: "card.accent", hint: "Tints the tile — e.g. #a60000" },
+          { field: "description", zone: "card.description" },
+        ],
+      },
+    ],
+    preview: { template: "cardGrid", params: { cols: 3, accent: "color" } },
+  },
 ];
 
 /**

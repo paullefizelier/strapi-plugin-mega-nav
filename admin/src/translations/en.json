@@ -242,5 +242,9 @@
   "transfer.expected-array": "Expected a JSON array of field definitions.",
   "transfer.expected-array-layouts": "Expected a JSON array of layouts.",
   "editor.copy-translate-off": "Copy and translate — no provider configured",
-  "editor.copy-translate-setup": "Machine translation needs a provider key — add one under Settings → Mega Nav → Translation."
+  "editor.copy-translate-setup": "Machine translation needs a provider key — add one under Settings → Mega Nav → Translation.",
+  "presentation.directory": "Directory",
+  "presentation.tabs": "Tabs",
+  "presentation.brands": "Brands",
+  "settings.layouts.thumbnail": "What it looks like"
 }

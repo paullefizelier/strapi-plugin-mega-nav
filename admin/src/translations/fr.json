@@ -242,5 +242,9 @@
   "transfer.expected-array": "Un tableau JSON de définitions de champs est attendu.",
   "transfer.expected-array-layouts": "Un tableau JSON de layouts est attendu.",
   "editor.copy-translate-off": "Copier et traduire — aucun fournisseur configuré",
-  "editor.copy-translate-setup": "La traduction automatique exige une clé de fournisseur — à renseigner dans Réglages → Mega Nav → Traduction."
+  "editor.copy-translate-setup": "La traduction automatique exige une clé de fournisseur — à renseigner dans Réglages → Mega Nav → Traduction.",
+  "presentation.directory": "Annuaire",
+  "presentation.tabs": "Onglets",
+  "presentation.brands": "Marques",
+  "settings.layouts.thumbnail": "À quoi ça ressemble"
 }

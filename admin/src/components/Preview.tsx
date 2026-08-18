@@ -98,6 +98,15 @@ interface Ctx {
   t: (id: string, defaultMessage: string, values?: Record<string, string | number>) => string;
 }
 
+/** A template's `preview.params` — free-form in the spec, read defensively here. */
+type Params = Record<string, unknown>;
+
+const num = (value: unknown, fallback: number): number =>
+  typeof value === "number" && Number.isFinite(value) && value > 0 ? Math.floor(value) : fallback;
+
+const bool = (value: unknown, fallback: boolean): boolean =>
+  typeof value === "boolean" ? value : fallback;
+
 /** Does the layout declare this field at that depth (1-based)? */
 const levelUses = (spec: LayoutSpec | null, depth: number, field: string): boolean =>
   Boolean(spec?.levels[depth - 1]?.fields.some((use) => use.field === field));
@@ -269,13 +278,24 @@ const LinkRow = ({
 
 /* ----------------------------------- templates ----------------------------------- */
 
-const LinkList = ({ root, ctx }: { root: NavNode; ctx: Ctx }) => (
-  <Flex direction="column" alignItems="stretch" gap={1} style={{ maxWidth: 320 }}>
-    {root.children.map((child) => (
-      <LinkRow key={child.id} node={child} ctx={ctx} />
-    ))}
-  </Flex>
-);
+/** `columns` (default 1) — a long flat list reads better spread over a few. */
+const LinkList = ({ root, ctx, params }: { root: NavNode; ctx: Ctx; params: Params }) => {
+  const columns = num(params.columns, 1);
+  return (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+        gap: 4,
+        maxWidth: columns > 1 ? undefined : 320,
+      }}
+    >
+      {root.children.map((child) => (
+        <LinkRow key={child.id} node={child} ctx={ctx} />
+      ))}
+    </div>
+  );
+};
 
 const RowList = ({ root, ctx }: { root: NavNode; ctx: Ctx }) => {
   const imageStart = str(root, "imagePosition") === "start";
@@ -293,36 +313,74 @@ const RowList = ({ root, ctx }: { root: NavNode; ctx: Ctx }) => {
   );
 };
 
-const CardGrid = ({ root, ctx }: { root: NavNode; ctx: Ctx }) => (
-  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
-    {root.children.map((child) => (
-      <Clickable
-        key={child.id}
-        $selected={ctx.selectedId === child.id}
-        onClick={(e) => {
-          e.stopPropagation();
-          ctx.onSelect(child.id);
-        }}
-        style={{ padding: 8, background: "rgba(255,255,255,0.04)" }}
-      >
-        <Flex direction="column" alignItems="stretch" gap={1}>
-          <ImageZone node={child} ctx={ctx} height={56} label={ctx.t("preview.zone-card-image", "image / icon")} zone="card.image" />
-          <Title>{child.title}</Title>
-          {str(child, "description") ? (
-            <Zone name="card.description" ctx={ctx}>
-              <Muted>{str(child, "description")}</Muted>
-            </Zone>
-          ) : null}
-        </Flex>
-      </Clickable>
-    ))}
-  </div>
-);
-
-const Mosaic = ({ root, ctx }: { root: NavNode; ctx: Ctx }) => {
-  const [hero, ...rest] = root.children;
+/**
+ * `cols` (default 3) and `accent` — the name of a field holding a colour that
+ * tints each card, for a grid of brands rather than of articles.
+ */
+const CardGrid = ({ root, ctx, params }: { root: NavNode; ctx: Ctx; params: Params }) => {
+  const accentField = typeof params.accent === "string" ? params.accent : null;
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gridAutoRows: 64, gap: 8 }}>
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: `repeat(${num(params.cols, 3)}, minmax(0, 1fr))`,
+        gap: 10,
+      }}
+    >
+      {root.children.map((child) => {
+        const accent = accentField ? str(child, accentField) : null;
+        const tinted = accentField ? (
+          <Zone name="card.accent" ctx={ctx} style={{ display: "block" }}>
+            <div
+              style={{
+                height: 4,
+                borderRadius: 2,
+                marginBottom: 6,
+                background: accent ?? "rgba(255,255,255,0.15)",
+              }}
+            />
+          </Zone>
+        ) : null;
+
+        return (
+          <Clickable
+            key={child.id}
+            $selected={ctx.selectedId === child.id}
+            onClick={(e) => {
+              e.stopPropagation();
+              ctx.onSelect(child.id);
+            }}
+            style={{
+              padding: 8,
+              background: accent ? `${accent}22` : "rgba(255,255,255,0.04)",
+              borderRadius: 8,
+            }}
+          >
+            {tinted}
+            <Flex direction="column" alignItems="stretch" gap={1}>
+              <ImageZone node={child} ctx={ctx} height={56} label={ctx.t("preview.zone-card-image", "image / icon")} zone="card.image" />
+              <Title>{child.title}</Title>
+              {str(child, "description") ? (
+                <Zone name="card.description" ctx={ctx}>
+                  <Muted>{str(child, "description")}</Muted>
+                </Zone>
+              ) : null}
+            </Flex>
+          </Clickable>
+        );
+      })}
+    </div>
+  );
+};
+
+/** `heroFirst` (default true) — off, every tile is the same size. */
+const Mosaic = ({ root, ctx, params }: { root: NavNode; ctx: Ctx; params: Params }) => {
+  const [first, ...others] = root.children;
+  const heroFirst = bool(params.heroFirst, true);
+  const hero = heroFirst ? first : undefined;
+  const rest = heroFirst ? others : root.children;
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: `repeat(${num(params.cols, 4)}, 1fr)`, gridAutoRows: 64, gap: 8 }}>
       {hero ? (
         <Clickable
           $selected={ctx.selectedId === hero.id}
@@ -411,17 +469,25 @@ const GroupColumn = ({ group, ctx }: { group: NavNode; ctx: Ctx }) => (
   </Clickable>
 );
 
-const LinksPromo = ({ root, ctx, params }: { root: NavNode; ctx: Ctx; params: Record<string, unknown> }) => {
+const LinksPromo = ({ root, ctx, params }: { root: NavNode; ctx: Ctx; params: Params }) => {
   const grouped = Boolean(params.grouped);
   const promo = String(params.promo ?? "right");
   const [hovered, setHovered] = React.useState<NavNode | null>(null);
 
   const links = grouped ? (
-    <Flex gap={2} alignItems="flex-start" style={{ flex: 1 }}>
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: `repeat(${num(params.cols, 4)}, minmax(0, 1fr))`,
+        gap: 8,
+        flex: 1,
+        alignItems: "start",
+      }}
+    >
       {root.children.map((group) => (
         <GroupColumn key={group.id} group={group} ctx={ctx} />
       ))}
-    </Flex>
+    </div>
   ) : (
     <Flex direction="column" alignItems="stretch" gap={1} style={{ flex: 1 }}>
       {root.children.map((child) => (
@@ -431,6 +497,9 @@ const LinksPromo = ({ root, ctx, params }: { root: NavNode; ctx: Ctx; params: Re
       ))}
     </Flex>
   );
+
+  // No promo at all: the links take the whole panel — a dense index.
+  if (promo === "none") return links;
 
   if (promo === "bottom-banner") {
     return (
@@ -481,50 +550,84 @@ const LinksPromo = ({ root, ctx, params }: { root: NavNode; ctx: Ctx; params: Re
   );
 };
 
-const TabsDetail = ({ root, ctx }: { root: NavNode; ctx: Ctx }) => {
+/**
+ * A selectable list of level-2 entries revealing that entry's own children.
+ *
+ * `orientation` (default `vertical`) puts the list on the left with a promo
+ * pane — that is `teams`. `horizontal` turns it into a tab bar above the
+ * links, with no promo, which is the lighter three-level variant.
+ * `promo` (default: only when vertical) toggles the pane on its own.
+ */
+const TabsDetail = ({ root, ctx, params }: { root: NavNode; ctx: Ctx; params: Params }) => {
   const [activeId, setActiveId] = React.useState<string | null>(root.children[0]?.id ?? null);
   const active = root.children.find((c) => c.id === activeId) ?? root.children[0];
+  const horizontal = params.orientation === "horizontal";
+  const withPromo = bool(params.promo, !horizontal);
+
+  const entries = root.children.map((entry) => (
+    <div key={entry.id} onMouseEnter={() => setActiveId(entry.id)}>
+      <Clickable
+        $selected={ctx.selectedId === entry.id}
+        onClick={(e) => {
+          e.stopPropagation();
+          ctx.onSelect(entry.id);
+        }}
+        style={{
+          padding: "6px 10px",
+          whiteSpace: horizontal ? "nowrap" : undefined,
+          borderBottom:
+            horizontal && entry.id === active?.id ? "2px solid rgba(123,121,255,0.9)" : "2px solid transparent",
+          background: !horizontal && entry.id === active?.id ? "rgba(255,255,255,0.07)" : "transparent",
+        }}
+      >
+        <Title>{entry.title}</Title>
+        {str(entry, "offerBrand") ? (
+          <Zone name="team.offers" ctx={ctx} style={{ display: "inline-block" }}>
+            <Muted> · {str(entry, "offerBrand")}</Muted>
+          </Zone>
+        ) : null}
+      </Clickable>
+    </div>
+  ));
+
+  const detail = (
+    <Flex gap={2} alignItems="flex-start" style={{ flex: 1 }}>
+      {(active?.children ?? []).map((group) => (
+        <GroupColumn key={group.id} group={group} ctx={ctx} />
+      ))}
+    </Flex>
+  );
+
   return (
     <Flex direction="column" alignItems="stretch" gap={3}>
-      <Flex gap={4} alignItems="flex-start">
-        <div style={{ flex: "0 0 200px" }}>
-          <PromoPanel
-            node={active ?? root}
-            ctx={ctx}
-            zones={
-              active
-                ? { title: "team.description", subtitle: "team.tagline", image: "team.image", cta: "team.cta" }
-                : PROMO_ZONES
-            }
-          />
-        </div>
-        <Flex direction="column" alignItems="stretch" gap={1} style={{ flex: "0 0 180px" }}>
-          {root.children.map((team) => (
-            <div key={team.id} onMouseEnter={() => setActiveId(team.id)}>
-              <Clickable
-                $selected={ctx.selectedId === team.id}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  ctx.onSelect(team.id);
-                }}
-                style={{ padding: "6px 8px", background: team.id === active?.id ? "rgba(255,255,255,0.07)" : "transparent" }}
-              >
-                <Title>{team.title}</Title>
-                {str(team, "offerBrand") ? (
-                  <Zone name="team.offers" ctx={ctx} style={{ display: "inline-block" }}>
-                    <Muted> · {str(team, "offerBrand")}</Muted>
-                  </Zone>
-                ) : null}
-              </Clickable>
+      {horizontal ? (
+        <Flex direction="column" alignItems="stretch" gap={3}>
+          <Flex gap={1} alignItems="center" style={{ borderBottom: "1px solid rgba(255,255,255,0.12)" }}>
+            {entries}
+          </Flex>
+          {detail}
+        </Flex>
+      ) : (
+        <Flex gap={4} alignItems="flex-start">
+          {withPromo ? (
+            <div style={{ flex: "0 0 200px" }}>
+              <PromoPanel
+                node={active ?? root}
+                ctx={ctx}
+                zones={
+                  active
+                    ? { title: "team.description", subtitle: "team.tagline", image: "team.image", cta: "team.cta" }
+                    : PROMO_ZONES
+                }
+              />
             </div>
-          ))}
+          ) : null}
+          <Flex direction="column" alignItems="stretch" gap={1} style={{ flex: "0 0 180px" }}>
+            {entries}
+          </Flex>
+          {detail}
         </Flex>
-        <Flex gap={2} alignItems="flex-start" style={{ flex: 1 }}>
-          {(active?.children ?? []).map((group) => (
-            <GroupColumn key={group.id} group={group} ctx={ctx} />
-          ))}
-        </Flex>
-      </Flex>
+      )}
       <Zone name="footer.cta" ctx={ctx}>
         {str(root, "ctaLabel") ? (
           <Flex justifyContent="center">
@@ -540,13 +643,17 @@ const TabsDetail = ({ root, ctx }: { root: NavNode; ctx: Ctx }) => {
 
 /* ----------------------------------- shell ----------------------------------- */
 
-const TEMPLATES: Record<string, React.ComponentType<{ root: NavNode; ctx: Ctx; params: Record<string, unknown> }>> = {
-  linkList: ({ root, ctx }) => <LinkList root={root} ctx={ctx} />,
+/**
+ * Every template receives its `params` — the metadata is meant to drive the
+ * preview, and adapters that dropped them made half the specs decorative.
+ */
+const TEMPLATES: Record<string, React.ComponentType<{ root: NavNode; ctx: Ctx; params: Params }>> = {
+  linkList: LinkList,
   rowList: ({ root, ctx }) => <RowList root={root} ctx={ctx} />,
-  cardGrid: ({ root, ctx }) => <CardGrid root={root} ctx={ctx} />,
-  mosaic: ({ root, ctx }) => <Mosaic root={root} ctx={ctx} />,
+  cardGrid: CardGrid,
+  mosaic: Mosaic,
   linksPromo: LinksPromo,
-  tabsDetail: ({ root, ctx }) => <TabsDetail root={root} ctx={ctx} />,
+  tabsDetail: TabsDetail,
 };
 
 interface PreviewProps {

@@ -120,12 +120,109 @@ function ColumnsPanel({ item }: { item: NavItem }) {
   );
 }
 
+/** Dense index: level 2 = headings, level 3 = links, no promo. */
+function DirectoryPanel({ item }: { item: NavItem }) {
+  return (
+    <div className="grid grid-cols-2 gap-x-8 gap-y-6 p-6 md:grid-cols-4 xl:grid-cols-6">
+      {item.children.map((group) => (
+        <div key={group.id}>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide opacity-50">
+            {group.title}
+          </p>
+          <ul className="space-y-2">
+            {group.children.map((link) => (
+              <li key={link.id}>
+                <LinkWithDescription item={link} />
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Horizontal tabs: level 2 = tabs, level 3 = groups, level 4 = links. */
+function TabsPanel({ item }: { item: NavItem }) {
+  const [activeId, setActiveId] = React.useState(item.children[0]?.id);
+  const active = item.children.find((t) => t.id === activeId) ?? item.children[0];
+
+  return (
+    <div className="p-6">
+      <div role="tablist" className="mb-5 flex gap-1 overflow-x-auto border-b">
+        {item.children.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={tab.id === active?.id}
+            tabIndex={tab.id === active?.id ? 0 : -1}
+            onMouseEnter={() => setActiveId(tab.id)}
+            onFocus={() => setActiveId(tab.id)}
+            className={`whitespace-nowrap border-b-2 px-4 py-2 text-sm font-medium ${
+              tab.id === active?.id ? "border-current" : "border-transparent opacity-60"
+            }`}
+          >
+            {tab.title}
+          </button>
+        ))}
+      </div>
+      <div role="tabpanel" className="grid grid-cols-2 gap-x-8 gap-y-6 md:grid-cols-4">
+        {(active?.children ?? []).map((group) => (
+          <div key={group.id}>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide opacity-50">
+              {group.title}
+            </p>
+            <ul className="space-y-2">
+              {group.children.map((link) => (
+                <li key={link.id}>
+                  <ItemLink item={link} className="text-sm hover:underline" />
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Tiles tinted by each item's own accent colour (the `color` field). */
+function BrandsPanel({ item }: { item: NavItem }) {
+  return (
+    <div className="grid grid-cols-2 gap-4 p-6 md:grid-cols-3">
+      {item.children.map((brand) => {
+        const accent = text(brand, "color");
+        return (
+          <ItemLink
+            key={brand.id}
+            item={brand}
+            className="relative overflow-hidden rounded-2xl p-5 ring-1 ring-inset ring-black/10"
+          >
+            <span
+              className="absolute inset-x-0 top-0 h-1"
+              style={{ background: accent ?? "currentColor" }}
+            />
+            <span className="block font-semibold">{brand.title}</span>
+            {text(brand, "description") ? (
+              <span className="mt-1 block text-sm opacity-70">{text(brand, "description")}</span>
+            ) : null}
+          </ItemLink>
+        );
+      })}
+    </div>
+  );
+}
+
 const PANELS: Record<string, React.ComponentType<{ item: NavItem }>> = {
   simple: SimplePanel,
   columns: ColumnsPanel,
   // split / banner share the grouped shape — reuse ColumnsPanel or write your own.
   split: ColumnsPanel,
   banner: ColumnsPanel,
+  directory: DirectoryPanel,
+  tabs: TabsPanel,
+  brands: BrandsPanel,
 };
 
 /** One top-level entry: a button that reveals its panel, or a bare link. */

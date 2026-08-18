@@ -9,6 +9,26 @@ carry breaking changes.
 
 ### Added
 
+- **Three layouts.** `directory` — a dense index with no promo, for sets too long
+  for `columns` (every sector, every trade, every region). `tabs` — horizontal
+  tabs over a grid of links, the lighter three-level cousin of `teams`.
+  `brands` — tiles tinted by each item's accent colour, with a new `color` field.
+- **A layout gallery.** Settings → Layouts shows a thumbnail per layout, and the
+  presentation picker previews the layout it is about to apply. Names alone never
+  told an editor what `bento` or `split` meant. Sample content is derived from the
+  layout's own levels and fields, so a layout added in the admin gets a thumbnail
+  without any code.
+
+### Fixed
+
+- **Preview templates now read their `params`.** Five of the six ignored them
+  entirely — `cards` declared `cols: 3`, `simple` `columns: 1`, `bento`
+  `heroFirst`, `teams` `depth: 4`, and the adapters dropped all of it. The
+  metadata claimed to drive the preview while mostly decorating it. `linksPromo`
+  also gains a `promo: "none"` mode and honours `cols`.
+
+### Added (earlier in this cycle)
+
 - **Export / import of the field and layout schemas.** Both settings screens gain
   a JSON download and upload, so a configuration built on staging can be moved to
   production. Storing these in the plugin store removed the "database silently

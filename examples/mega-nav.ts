@@ -127,7 +127,14 @@ export const presentation = (item: NavItem): string => text(item, "presentation"
  * metadata, so this list lives here — extend it if you declare a grouped layout
  * of your own in the plugin's Layouts settings.
  */
-export const DEFAULT_GROUPED_LAYOUTS = ["columns", "split", "banner", "teams"];
+export const DEFAULT_GROUPED_LAYOUTS = [
+  "columns",
+  "split",
+  "banner",
+  "teams",
+  "directory",
+  "tabs",
+];
 
 /**
  * Mirrors the plugin's degradation rule: a layout that needs level-2 groups,

@@ -64,6 +64,9 @@ export const DEFAULT_FIELDS: FieldDef[] = [
       "banner",
       "preview",
       "teams",
+      "directory",
+      "tabs",
+      "brands",
     ],
     levels: [1],
   },
@@ -78,6 +81,13 @@ export const DEFAULT_FIELDS: FieldDef[] = [
   { name: "highlight", type: "boolean", label: "Highlighted column (columns)" },
   // A lookup key matched against an external source — never translated.
   { name: "offerBrand", type: "string", label: "Offers brand key (teams)", translatable: false },
+  // A CSS colour, not prose — used to tint a brand tile.
+  {
+    name: "color",
+    type: "string",
+    label: "Accent colour (e.g. #a60000)",
+    translatable: false,
+  },
 ];
 
 const FIELD_TYPES = new Set<FieldType>(["string", "text", "boolean", "select", "media", "url", "number"]);
