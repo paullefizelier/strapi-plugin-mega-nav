@@ -3,6 +3,7 @@ import { useIntl } from "react-intl";
 import {
   Box,
   Button,
+  Checkbox,
   Dialog,
   Divider,
   EmptyStateLayout,
@@ -32,6 +33,7 @@ import Preview from "../components/Preview";
 import TreePane from "../components/TreePane";
 import { getTranslation } from "../getTranslation";
 import type {
+  CopyMode,
   FieldDef,
   LayoutSpec,
   NavigationDoc,
@@ -506,15 +508,42 @@ const Editor = () => {
         locales={locales}
         target={locale}
         onClose={() => setCopyOpen(false)}
-        onCopy={async (from, mode) => {
+        onCopy={async (from, mode, overwrite) => {
           setCopyOpen(false);
           setBusy(true);
           try {
-            const result = await api.copyLocale(documentId, { from, to: locale, mode });
+            const result = await api.copyLocale(documentId, { from, to: locale, mode, overwrite });
             toggleNotification({
               type: "success",
-              message: t("editor.copied", "{items} items copied.", { items: result.items }),
+              message:
+                result.translated === undefined
+                  ? t("editor.copied", "{items} items copied.", { items: result.items })
+                  : t("editor.copied-translated", "{items} items · {translated} labels translated, {kept} kept.", {
+                      items: result.items,
+                      translated: result.translated,
+                      kept: result.kept,
+                    }),
             });
+            // The answer can be partial, and a linked entry may simply not
+            // exist in this locale — both would otherwise be discovered live.
+            if (result.untranslated) {
+              toggleNotification({
+                type: "warning",
+                message: t("editor.copy-untranslated", "{count} labels came back unusable and kept their source text.", {
+                  count: result.untranslated,
+                }),
+              });
+            }
+            if (result.missingEntryTranslations?.length) {
+              toggleNotification({
+                type: "warning",
+                message: t(
+                  "editor.copy-missing-entries",
+                  "{count} linked entries have no “{locale}” version — those items will render as plain headings.",
+                  { count: result.missingEntryTranslations.length, locale },
+                ),
+              });
+            }
             await loadDoc(documentId, locale);
           } catch {
             toggleNotification({ type: "danger", message: t("editor.copy-error", "Copy failed.") });
@@ -605,11 +634,12 @@ const CopyLocaleModal = ({
   locales: string[];
   target: string;
   onClose: () => void;
-  onCopy: (from: string, mode: "full" | "structure") => void;
+  onCopy: (from: string, mode: CopyMode, overwrite: boolean) => void;
 }) => {
   const { formatMessage } = useIntl();
   const [from, setFrom] = React.useState("");
-  const [mode, setMode] = React.useState<"full" | "structure">("full");
+  const [mode, setMode] = React.useState<CopyMode>("translate");
+  const [overwrite, setOverwrite] = React.useState(false);
   const t = (id: string, defaultMessage: string, values?: Record<string, string | number>) =>
     formatMessage({ id: getTranslation(id), defaultMessage }, values);
   const candidates = locales.filter((l) => l !== target);
@@ -633,16 +663,34 @@ const CopyLocaleModal = ({
                 </SingleSelectOption>
               ))}
             </SingleSelect>
-            <SingleSelect value={mode} onChange={(next: string | number) => setMode(next as "full" | "structure")}>
-              <SingleSelectOption value="full">
-                {t("editor.copy-full", "Everything (overwrites this locale)")}
+            <SingleSelect value={mode} onChange={(next: string | number) => setMode(next as CopyMode)}>
+              <SingleSelectOption value="translate">
+                {t("editor.copy-translate", "Copy and translate the labels")}
               </SingleSelectOption>
               <SingleSelectOption value="structure">
                 {t("editor.copy-structure", "Structure only (keeps existing translations)")}
               </SingleSelectOption>
+              <SingleSelectOption value="full">
+                {t("editor.copy-full", "Everything, untranslated (overwrites this locale)")}
+              </SingleSelectOption>
             </SingleSelect>
-            <Typography variant="pi" textColor="warning600">
-              {t("editor.copy-warning", "Internal links carry over automatically; titles arrive untranslated.")}
+
+            {mode === "translate" ? (
+              <Checkbox
+                checked={overwrite}
+                onCheckedChange={(next: boolean | string) => setOverwrite(next === true)}
+              >
+                {t("editor.copy-overwrite", "Retranslate the labels already translated here")}
+              </Checkbox>
+            ) : null}
+
+            <Typography variant="pi" textColor="neutral600">
+              {mode === "translate"
+                ? t(
+                    "editor.copy-translate-hint",
+                    "Only the prose is translated — icons, images, layouts and CTA links are left as they are. Internal links need no translation: they follow the entry, which resolves in each locale.",
+                  )
+                : t("editor.copy-warning", "Internal links carry over automatically; labels arrive untranslated.")}
             </Typography>
           </Flex>
         </Modal.Body>
@@ -650,8 +698,8 @@ const CopyLocaleModal = ({
           <Button variant="tertiary" onClick={onClose}>
             {t("editor.cancel", "Cancel")}
           </Button>
-          <Button disabled={!from} onClick={() => onCopy(from, mode)}>
-            {t("editor.copy", "Copy")}
+          <Button disabled={!from} onClick={() => onCopy(from, mode, overwrite)}>
+            {mode === "translate" ? t("editor.copy-and-translate", "Copy and translate") : t("editor.copy", "Copy")}
           </Button>
         </Modal.Footer>
       </Modal.Content>

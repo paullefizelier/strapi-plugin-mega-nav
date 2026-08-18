@@ -4,6 +4,7 @@ import { cacheClear, cacheGet, cacheKey, cacheSet, makeInvalidationMiddleware, w
 import contentTypes from "./content-types";
 import { getFieldDefs, purgeField, seedFieldDefs, setFieldDefs, type FieldDef } from "./fields";
 import { runHealthCheck } from "./health";
+import { publicAiSettings, setAiSettings, testAi } from "./ai";
 import { copyLocale, NAVIGATION_UID, type CopyMode } from "./i18n";
 import { getLayoutSpecs, resetLayoutSpecs, seedLayoutSpecs, setLayoutSpecs, type LayoutSpec } from "./layouts";
 import { renderV1, renderV2, type RenderContext } from "./render";
@@ -235,11 +236,11 @@ const controllers = {
       ctx.body = doc;
     },
 
-    async copyLocale(ctx: { params: Record<string, string>; request: { body: { from?: string; to?: string; mode?: CopyMode } }; body: unknown; throw: (s: number, m: string) => never }) {
-      const { from, to, mode } = ctx.request.body ?? {};
+    async copyLocale(ctx: { params: Record<string, string>; request: { body: { from?: string; to?: string; mode?: CopyMode; overwrite?: boolean } }; body: unknown; throw: (s: number, m: string) => never }) {
+      const { from, to, mode, overwrite } = ctx.request.body ?? {};
       if (!from || !to) ctx.throw(400, "from and to locales are required");
       try {
-        ctx.body = await copyLocale(strapi, ctx.params.documentId, { from, to, mode });
+        ctx.body = await copyLocale(strapi, ctx.params.documentId, { from, to, mode, overwrite });
       } catch (err) {
         ctx.throw(400, (err as Error).message);
       }
@@ -307,6 +308,23 @@ const controllers = {
     },
   }),
 
+  ai: ({ strapi }: { strapi: Core.Strapi }) => ({
+    async get(ctx: { body: unknown }) {
+      ctx.body = await publicAiSettings(strapi);
+    },
+    async update(ctx: { request: { body: { provider?: string; model?: string; apiKey?: string | null } }; body: unknown; throw: (s: number, m: string) => never }) {
+      try {
+        await setAiSettings(strapi, ctx.request.body ?? {});
+      } catch (err) {
+        ctx.throw(400, (err as Error).message);
+      }
+      ctx.body = await publicAiSettings(strapi);
+    },
+    async test(ctx: { body: unknown }) {
+      ctx.body = await testAi(strapi);
+    },
+  }),
+
   health: ({ strapi }: { strapi: Core.Strapi }) => ({
     async run(ctx: { body: unknown }) {
       ctx.body = { issues: await runHealthCheck(strapi) };
@@ -368,6 +386,9 @@ const routes = {
       adminRoute("GET", "/sources", "sources.list", [ACTIONS.read]),
       adminRoute("GET", "/sources/:uid/entries", "sources.entries", [ACTIONS.read]),
       adminRoute("POST", "/entries/resolve", "sources.resolve", [ACTIONS.read]),
+      adminRoute("GET", "/ai", "ai.get", [ACTIONS.read]),
+      adminRoute("PUT", "/ai", "ai.update", [ACTIONS.settings]),
+      adminRoute("POST", "/ai/test", "ai.test", [ACTIONS.settings]),
       adminRoute("GET", "/health", "health.run", [ACTIONS.read]),
       adminRoute("POST", "/migration/scan", "migration.scan", [ACTIONS.migrate]),
       adminRoute("POST", "/migration/run", "migration.run", [ACTIONS.migrate]),

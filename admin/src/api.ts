@@ -1,6 +1,8 @@
 import { useFetchClient } from "@strapi/strapi/admin";
 import { PLUGIN_ID } from "./pluginId";
 import type {
+  CopyMode,
+  CopyResult,
   EntryHit,
   FieldDef,
   HealthIssue,
@@ -51,9 +53,9 @@ export function useMegaNavApi() {
     },
     async copyLocale(
       documentId: string,
-      body: { from: string; to: string; mode: "full" | "structure" },
-    ): Promise<{ items: number; kept: number }> {
-      const { data } = await post<{ items: number; kept: number }>(
+      body: { from: string; to: string; mode: CopyMode; overwrite?: boolean },
+    ): Promise<CopyResult> {
+      const { data } = await post<CopyResult>(
         `${base}/navigations/${documentId}/copy-locale`,
         body,
       );

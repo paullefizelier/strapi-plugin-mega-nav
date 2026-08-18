@@ -28,6 +28,10 @@ import { useMegaNavApi } from "../../api";
 import { getTranslation } from "../../getTranslation";
 import type { FieldDef, FieldType } from "../../types";
 
+/** Mirrors the server default: prose is translated, identifiers are not. */
+const isTranslatable = (def: FieldDef): boolean =>
+  def.disabled ? false : (def.translatable ?? (def.type === "string" || def.type === "text"));
+
 const FIELD_TYPES: FieldType[] = ["string", "text", "boolean", "select", "media", "url", "number"];
 
 /**
@@ -146,6 +150,9 @@ const FieldsSettings = () => {
                 <Typography variant="sigma">{t("settings.fields.levels", "Levels")}</Typography>
               </Th>
               <Th>
+                <Typography variant="sigma">{t("fields.translatable", "Translatable")}</Typography>
+              </Th>
+              <Th>
                 <Typography variant="sigma">{t("settings.fields.actions", "Actions")}</Typography>
               </Th>
             </Tr>
@@ -196,6 +203,21 @@ const FieldsSettings = () => {
                   <Typography textColor="neutral600">
                     {def.levels?.length ? def.levels.join(", ") : t("settings.fields.all-levels", "all")}
                   </Typography>
+                </Td>
+                <Td>
+                  <Toggle
+                    checked={isTranslatable(def)}
+                    onLabel={t("field.on", "On")}
+                    offLabel={t("field.off", "Off")}
+                    disabled={def.disabled}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      mutate(
+                        fields.map((f) =>
+                          f.name === def.name ? { ...f, translatable: e.target.checked } : f,
+                        ),
+                      )
+                    }
+                  />
                 </Td>
                 <Td>
                   <Flex gap={1}>

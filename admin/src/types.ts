@@ -33,6 +33,8 @@ export interface FieldDef {
   options?: string[];
   levels?: number[];
   disabled?: boolean;
+  /** Absent falls back to the type: prose is translated, identifiers are not. */
+  translatable?: boolean;
 }
 
 export interface FieldUse {
@@ -92,6 +94,17 @@ export interface ResolvedRef {
   href?: string | null;
   published?: boolean;
   missing: boolean;
+}
+
+export type CopyMode = "full" | "structure" | "translate";
+
+export interface CopyResult {
+  items: number;
+  kept: number;
+  translated?: number;
+  untranslated?: number;
+  /** Linked entries with no version in the target locale — they render as headings. */
+  missingEntryTranslations?: { uid: string; documentId: string }[];
 }
 
 export interface SourceInfo {

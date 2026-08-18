@@ -58,6 +58,13 @@ export default {
           Component: async () => (await import("./pages/settings/SourcesSettings")).default,
         },
         {
+          intlLabel: { id: `${PLUGIN_ID}.settings.ai`, defaultMessage: "Translation" },
+          id: `${PLUGIN_ID}-ai`,
+          to: `/settings/${PLUGIN_ID}/ai`,
+          permissions: [{ action: `plugin::${PLUGIN_ID}.settings`, subject: null }],
+          Component: async () => (await import("./pages/settings/AiSettings")).default,
+        },
+        {
           intlLabel: { id: `${PLUGIN_ID}.settings.migration`, defaultMessage: "Migration" },
           id: `${PLUGIN_ID}-migration`,
           to: `/settings/${PLUGIN_ID}/migration`,

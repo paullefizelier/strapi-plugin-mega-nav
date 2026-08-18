@@ -23,6 +23,24 @@ export interface FieldDef {
   levels?: number[];
   /** Hidden from the editor but values are preserved. */
   disabled?: boolean;
+  /**
+   * Whether machine translation may rewrite this value. Absent falls back to
+   * the type: prose is translated, everything identifying is not (see
+   * `isTranslatable`).
+   */
+  translatable?: boolean;
+}
+
+/**
+ * Prose gets translated; identifiers do not. A URL, a select key, an icon name
+ * or a brand key must survive a translation pass untouched — rewriting them
+ * silently breaks a link or a lookup, which is exactly the class of failure
+ * nobody notices until the page is live.
+ */
+export function isTranslatable(def: FieldDef | undefined): boolean {
+  if (!def || def.disabled) return false;
+  if (def.translatable !== undefined) return def.translatable;
+  return def.type === "string" || def.type === "text";
 }
 
 /**
@@ -50,14 +68,16 @@ export const DEFAULT_FIELDS: FieldDef[] = [
     levels: [1],
   },
   { name: "description", type: "string", label: "Description / promo panel title" },
-  { name: "icon", type: "string", label: "Icon (e.g. i-lucide-briefcase)" },
+  // A lucide id, not prose — translating it would break the icon.
+  { name: "icon", type: "string", label: "Icon (e.g. i-lucide-briefcase)", translatable: false },
   { name: "image", type: "media", label: "Image (promo panel or link visual)" },
   { name: "imagePosition", type: "select", label: "Promo image position", options: ["start", "end"] },
   { name: "ctaLabel", type: "string", label: "CTA — label" },
   { name: "ctaUrl", type: "url", label: "CTA — link" },
   { name: "tagline", type: "string", label: "Promo panel subtitle" },
   { name: "highlight", type: "boolean", label: "Highlighted column (columns)" },
-  { name: "offerBrand", type: "string", label: "Offers brand key (teams)" },
+  // A lookup key matched against an external source — never translated.
+  { name: "offerBrand", type: "string", label: "Offers brand key (teams)", translatable: false },
 ];
 
 const FIELD_TYPES = new Set<FieldType>(["string", "text", "boolean", "select", "media", "url", "number"]);
